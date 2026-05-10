@@ -1,0 +1,5 @@
+azure-ai-projects>=1.0.0b11
+azure-ai-evaluation>=1.0.0b6
+azure-identity>=1.17.0
+python-dotenv>=1.0.0
+rich>=13.7.0
