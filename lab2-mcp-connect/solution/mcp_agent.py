@@ -14,7 +14,7 @@ import os
 import sys
 from dotenv import load_dotenv
 from azure.ai.projects import AIProjectClient
-from azure.ai.projects.models import McpTool, ToolSet, RunStatus
+from azure.ai.agents.models import McpTool, ToolSet, RunStatus
 from azure.identity import DefaultAzureCredential
 from rich.console import Console
 from rich.panel import Panel

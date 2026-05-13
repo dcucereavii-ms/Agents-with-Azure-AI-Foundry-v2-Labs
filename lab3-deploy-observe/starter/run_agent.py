@@ -9,7 +9,7 @@ Your task: wire up tracing BEFORE the agent runs.
 import os
 from dotenv import load_dotenv
 from azure.ai.projects import AIProjectClient
-from azure.ai.projects.models import RunStatus
+from azure.ai.agents.models import RunStatus
 from azure.identity import DefaultAzureCredential
 from opentelemetry import trace
 from rich.console import Console

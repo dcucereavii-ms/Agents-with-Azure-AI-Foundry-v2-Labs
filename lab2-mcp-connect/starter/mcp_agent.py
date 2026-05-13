@@ -14,7 +14,7 @@ import os
 import sys
 from dotenv import load_dotenv
 from azure.ai.projects import AIProjectClient
-from azure.ai.projects.models import McpTool, ToolSet, RunStatus
+from azure.ai.agents.models import McpTool, ToolSet, RunStatus
 from azure.identity import DefaultAzureCredential
 from rich.console import Console
 from rich.panel import Panel
@@ -36,7 +36,6 @@ def run_agent_with_mcp(queries: list[str]) -> int:
 
     # TODO 1: Build an McpTool pointing at mcp_url with a server_label of your choice.
     # mcp_tool = McpTool(server_label=..., server_url=...)
-    raise NotImplementedError("TODO 1: build the McpTool")
 
     # TODO 2: Add the McpTool to a ToolSet.
     # toolset = ToolSet(); toolset.add(mcp_tool)
@@ -53,6 +52,10 @@ def run_agent_with_mcp(queries: list[str]) -> int:
     # to completion with create_and_process_run, and print the assistant reply.
 
     # TODO 5: In a finally block, delete the agent so the project stays clean.
+
+    raise NotImplementedError(
+        "Complete TODOs 1-5 above to build the MCP-connected agent."
+    )
 
 
 if __name__ == "__main__":

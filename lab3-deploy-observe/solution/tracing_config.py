@@ -4,7 +4,7 @@ Lab 3 — Tracing Configuration: Complete Solution
 
 import os
 from azure.monitor.opentelemetry import configure_azure_monitor
-from azure.ai.projects.telemetry import AIInstrumentor
+from azure.ai.agents.telemetry import AIAgentsInstrumentor
 from opentelemetry import trace
 
 
@@ -24,8 +24,8 @@ def configure_tracing(enable_content_recording: bool = True) -> None:
     # Configure Azure Monitor as the OTLP exporter
     configure_azure_monitor(connection_string=connection_string)
 
-    # Instrument the Azure AI Projects SDK to auto-emit spans
-    AIInstrumentor().instrument(enable_content_recording=enable_content_recording)
+    # Instrument the Azure AI Agents SDK to auto-emit spans
+    AIAgentsInstrumentor().instrument(enable_content_recording=enable_content_recording)
 
     print(f"✅ Tracing configured (content recording: {enable_content_recording})")
 

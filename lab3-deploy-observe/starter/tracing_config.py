@@ -27,7 +27,7 @@ def configure_tracing(enable_content_recording: bool = True) -> None:
     # Call configure_azure_monitor(connection_string=connection_string)
 
     # TODO: Step 2 — Enable Azure AI content recording
-    # Import AIInstrumentor from azure.ai.projects.telemetry
+    # Import AIAgentsInstrumentor from azure.ai.agents.telemetry
     # Create an instance and call .instrument(enable_content_recording=enable_content_recording)
 
     print(f"✅ Tracing configured (content recording: {enable_content_recording})")

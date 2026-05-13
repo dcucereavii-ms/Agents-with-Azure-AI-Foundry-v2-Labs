@@ -15,7 +15,7 @@ An **instrumented agent** that emits OpenTelemetry traces to Azure Monitor, givi
 │  ┌─────────────────────────────────────────────────────┐   │
 │  │  configure_tracing()   ← tracing_config.py         │   │
 │  │    └─ configure_azure_monitor()                     │   │
-│  │    └─ AIInstrumentor().instrument()                 │   │
+│  │    └─ AIAgentsInstrumentor().instrument()           │   │
 │  └─────────────────────────────────────────────────────┘   │
 │                                                             │
 │  ┌─────────────────────────────────────────────────────┐   │
@@ -78,12 +78,12 @@ This single call:
 ### TODO 2 — Enable Azure AI content recording
 
 ```python
-from azure.ai.projects.telemetry import AIInstrumentor
+from azure.ai.agents.telemetry import AIAgentsInstrumentor
 
-AIInstrumentor().instrument(enable_content_recording=enable_content_recording)
+AIAgentsInstrumentor().instrument(enable_content_recording=enable_content_recording)
 ```
 
-`AIInstrumentor` patches the Azure AI Projects SDK so every agent call, tool invocation, and message is automatically wrapped in an OpenTelemetry span.
+`AIAgentsInstrumentor` patches the Azure AI Agents SDK so every agent call, tool invocation, and message is automatically wrapped in an OpenTelemetry span.
 
 > ⚠️ **Content recording:** When `enable_content_recording=True`, the actual prompt text and model responses are included in trace attributes. This is useful for debugging but should be `False` in production due to PII concerns.
 
@@ -199,7 +199,7 @@ Compare the trace payloads in the portal — notice what disappears.
 | **OpenTelemetry** | Open standard for distributed tracing, metrics, and logs |
 | **Span** | A single timed operation (e.g., one agent run, one tool call) |
 | **Trace** | A tree of spans representing one end-to-end operation |
-| **`AIInstrumentor`** | Auto-instruments Azure AI SDK calls into spans |
+| **`AIAgentsInstrumentor`** | Auto-instruments Azure AI Agents SDK calls into spans |
 | **`configure_azure_monitor()`** | One-call setup for OTLP export to Application Insights |
 | **Content recording** | Option to include prompt/response text in span attributes |
 | **`start_as_current_span()`** | Creates a custom span that becomes the parent of any child spans |

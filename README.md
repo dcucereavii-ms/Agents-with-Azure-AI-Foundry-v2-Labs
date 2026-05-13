@@ -294,10 +294,10 @@ A successful pre-workshop run looks like:
 ✅ pip 24.x — OK
 ✅ Virtualenv active — OK
 ✅ azure-ai-projects (AIProjectClient) — Lab 1, 2, 3, 4
-✅ azure-ai-projects.models (BingGroundingTool) — Lab 1
-✅ azure-ai-projects.models (CodeInterpreterTool) — Lab 1
-✅ azure-ai-projects.models (McpTool) — Lab 2
-✅ azure-ai-projects.telemetry (AIInstrumentor) — Lab 3
+  ✅ azure-ai-agents.models (BingGroundingTool) — Lab 1
+  ✅ azure-ai-agents.models (CodeInterpreterTool) — Lab 1
+  ✅ azure-ai-agents.models (McpTool) — Lab 2
+  ✅ azure-ai-agents.telemetry (AIAgentsInstrumentor) — Lab 3
 ✅ azure-identity (DefaultAzureCredential) — Lab 1, 2, 3, 4
 ✅ azure-monitor-opentelemetry (configure_azure_monitor) — Lab 3
 ✅ azure-ai-evaluation (GroundednessEvaluator) — Lab 4
@@ -390,7 +390,7 @@ Build a custom MCP (Model Context Protocol) server in Python, test it standalone
 
 Instrument an agent with OpenTelemetry tracing, deploy it to Azure AI Agent Service, and observe execution traces in the Azure portal. Learn to interpret spans, tool calls, and latency from real agent runs.
 
-**You'll learn:** OpenTelemetry setup, `AIInstrumentor`, Azure Monitor exporter, trace visualization in the Foundry portal, custom span attributes.
+**You'll learn:** OpenTelemetry setup, `AIAgentsInstrumentor`, Azure Monitor exporter, trace visualization in the Foundry portal, custom span attributes.
 
 ---
 

@@ -4,7 +4,7 @@ These are provided so you can focus on agent creation, not boilerplate.
 """
 
 from azure.ai.projects import AIProjectClient
-from azure.ai.projects.models import RunStatus
+from azure.ai.agents.models import RunStatus
 from rich.console import Console
 
 console = Console()

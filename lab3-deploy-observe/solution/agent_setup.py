@@ -4,7 +4,7 @@ Lab 3 — Agent Setup (same as starter — pre-built, no changes needed)
 
 import os
 from azure.ai.projects import AIProjectClient
-from azure.ai.projects.models import CodeInterpreterTool, ToolSet
+from azure.ai.agents.models import CodeInterpreterTool, ToolSet
 from azure.identity import DefaultAzureCredential
 
 

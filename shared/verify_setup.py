@@ -28,17 +28,17 @@ SDK_IMPORTS = [
     ("azure.identity",                    "DefaultAzureCredential",    "all"),
     ("dotenv",                            "load_dotenv",               "all"),
     ("rich.console",                      "Console",                   "all"),
-    # Lab 1
-    ("azure.ai.projects.models",          "BingGroundingTool",         "1"),
-    ("azure.ai.projects.models",          "ToolSet",                   "1"),
+    # Lab 1 — agent model classes live in azure-ai-agents as of b11
+    ("azure.ai.agents.models",            "BingGroundingTool",         "1"),
+    ("azure.ai.agents.models",            "ToolSet",                   "1"),
     # Lab 2
     ("mcp",                               "ClientSession",             "2"),
     ("mcp",                               "StdioServerParameters",     "2"),
-    ("azure.ai.projects.models",          "McpTool",                   "2"),
+    ("azure.ai.agents.models",            "McpTool",                   "2"),
     # Lab 3
     ("azure.monitor.opentelemetry",       "configure_azure_monitor",   "3"),
-    ("azure.ai.projects.telemetry",       "AIInstrumentor",            "3"),
-    ("azure.ai.projects.models",          "CodeInterpreterTool",       "3,4"),
+    ("azure.ai.agents.telemetry",         "AIAgentsInstrumentor",      "3"),
+    ("azure.ai.agents.models",            "CodeInterpreterTool",       "3,4"),
     # Lab 4
     ("azure.ai.evaluation",               "GroundednessEvaluator",     "4"),
     ("azure.ai.evaluation",               "CoherenceEvaluator",        "4"),

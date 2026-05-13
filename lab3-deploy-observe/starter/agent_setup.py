@@ -6,7 +6,7 @@ Pre-built — no changes needed. Focus is on tracing, not agent creation.
 
 import os
 from azure.ai.projects import AIProjectClient
-from azure.ai.projects.models import CodeInterpreterTool, ToolSet
+from azure.ai.agents.models import CodeInterpreterTool, ToolSet
 from azure.identity import DefaultAzureCredential
 
 

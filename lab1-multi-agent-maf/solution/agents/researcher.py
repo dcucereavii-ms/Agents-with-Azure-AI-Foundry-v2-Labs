@@ -2,7 +2,7 @@
 
 import os
 from azure.ai.projects import AIProjectClient
-from azure.ai.projects.models import BingGroundingTool, ToolSet
+from azure.ai.agents.models import BingGroundingTool, ToolSet
 
 
 RESEARCHER_INSTRUCTIONS = """You are a research specialist with web search capabilities.

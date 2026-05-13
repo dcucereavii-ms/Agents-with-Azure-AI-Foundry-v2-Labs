@@ -2,7 +2,13 @@
 # DO NOT loosen these to >= without re-validating every lab end-to-end.
 # These pin to the azure-ai-projects 1.0.0b11 era; the 2.x line is a breaking
 # rewrite (agent ops moved to azure-ai-agents) and requires a code migration.
+#
+# As of b11 the agent model classes (BingGroundingTool, ToolSet, McpTool,
+# CodeInterpreterTool, RunStatus, etc.) and telemetry (AIAgentsInstrumentor)
+# live in the separate azure-ai-agents package. Pin it explicitly so installs
+# are reproducible.
 azure-ai-projects==1.0.0b11
+azure-ai-agents>=1.1.0b4,<1.2
 azure-identity==1.17.1
 azure-monitor-opentelemetry==1.6.4
 opentelemetry-sdk==1.27.0
