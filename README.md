@@ -162,7 +162,33 @@ Confirm the `"name"` and `"id"` fields match the sandbox subscription from your 
 
 ---
 
-## 📦 Clone the Repository
+## ⚡ Pre-Lab Environment Setup — Do This **Before** You Arrive
+
+> **We only have half a day. Every minute spent on `pip install` is a minute we don't get back.**
+> Complete *all* steps below before the workshop. If you arrive with a fully primed environment, we go straight into Lab 1.
+
+You will install **every** dependency for **every** lab ahead of time. Total install: ~5 minutes on a fast connection, ~15 on hotel Wi-Fi. Do not leave this for the workshop room.
+
+### TL;DR — one command
+
+After cloning the repo (Step 1 below), you can run a single script that does Steps 2–7 for you:
+
+```powershell
+# Windows (PowerShell)
+.\scripts\setup.ps1
+```
+
+```bash
+# macOS / Linux
+chmod +x scripts/setup.sh
+./scripts/setup.sh
+```
+
+If that finishes with **all green** in `verify_setup.py`, skip to the [verification checklist](#-pre-workshop-verification-checklist). Otherwise, follow the manual steps below.
+
+---
+
+### Step 1 — Clone the repo
 
 ```bash
 git clone https://github.com/dcucereavii-ms/Agents-with-Azure-AI-Foundry-v2-Labs.git
@@ -171,78 +197,159 @@ cd Agents-with-Azure-AI-Foundry-v2-Labs
 
 You should see four lab directories: `lab1-multi-agent-maf`, `lab2-mcp-connect`, `lab3-deploy-observe`, `lab4-eval-teams`.
 
----
-
-## ⚡ Pre-Lab Environment Setup
-
-Complete these steps after cloning the repo:
-
-### Step 1 — Create your `.env` file
+### Step 2 — Create your `.env` file
 
 ```bash
+# Windows (PowerShell)
+Copy-Item .env.example .env
+
+# macOS / Linux
 cp .env.example .env
 ```
 
-> The `.env` values will be provided by the instructor at the start of the workshop. You do not need to fill them in ahead of time — just confirm the file exists.
+> The actual values (`AIPROJECT_ENDPOINT`, `AZURE_OPENAI_*`, etc.) will be handed out at the workshop. You just need the file to exist.
 
-### Step 2 — Create a virtual environment
+### Step 3 — Create and activate a virtual environment
 
 ```bash
 python -m venv .venv
 ```
 
-**Activate it:**
-
 ```bash
-# Windows (Command Prompt / PowerShell)
-.venv\Scripts\activate
+# Windows (PowerShell)
+.venv\Scripts\Activate.ps1
+
+# Windows (cmd.exe)
+.venv\Scripts\activate.bat
 
 # macOS / Linux
 source .venv/bin/activate
 ```
 
-You should see `(.venv)` at the start of your terminal prompt.
+You should see `(.venv)` at the start of your terminal prompt. **All subsequent steps must run inside this venv.**
 
-### Step 3 — Install base dependencies
+### Step 4 — Upgrade pip and install ALL lab dependencies
+
+This is the critical step. Do not skip — install every lab's requirements now so they're cached and resolved on your machine before the workshop:
 
 ```bash
+python -m pip install --upgrade pip
+
 pip install -r shared/requirements.txt
+pip install -r lab1-multi-agent-maf/requirements.txt
+pip install -r lab2-mcp-connect/requirements.txt
+pip install -r lab3-deploy-observe/requirements.txt
+pip install -r lab4-eval-teams/requirements.txt
 ```
 
-### Step 4 — Verify your setup
+> All lab `requirements.txt` files extend `shared/requirements.txt`, so this is fast after the first one — but **run all five commands anyway** so any lab-specific package (`mcp`, `azure-ai-evaluation`) lands in the pip cache.
+
+**One-liner alternative (PowerShell):**
+
+```powershell
+'shared','lab1-multi-agent-maf','lab2-mcp-connect','lab3-deploy-observe','lab4-eval-teams' | ForEach-Object { pip install -r "$_/requirements.txt" }
+```
+
+**One-liner alternative (bash):**
+
+```bash
+for d in shared lab1-multi-agent-maf lab2-mcp-connect lab3-deploy-observe lab4-eval-teams; do
+  pip install -r "$d/requirements.txt"
+done
+```
+
+### Step 5 — Install Node.js dependencies for Lab 2
+
+Lab 2 uses an MCP server that runs on Node. Pre-fetch the npm package now so you don't wait at the workshop:
+
+```bash
+npx -y @modelcontextprotocol/server-everything --help
+```
+
+This downloads and caches the reference MCP server. You should see a help message and exit. If it hangs or errors, fix it before the workshop.
+
+### Step 6 — Verify your setup
 
 ```bash
 python shared/verify_setup.py
 ```
 
-A successful run looks like:
+A successful pre-workshop run looks like:
+
 ```
 ✅ Python 3.11.9 — OK
-✅ azure-ai-projects — importable
-✅ azure-identity — importable
+✅ pip 24.x — OK
+✅ Virtualenv active — OK
+✅ azure-ai-projects (AIProjectClient) — Lab 1, 2, 3, 4
+✅ azure-ai-projects.models (BingGroundingTool) — Lab 1
+✅ azure-ai-projects.models (CodeInterpreterTool) — Lab 1
+✅ azure-ai-projects.models (McpTool) — Lab 2
+✅ azure-ai-projects.telemetry (AIInstrumentor) — Lab 3
+✅ azure-identity (DefaultAzureCredential) — Lab 1, 2, 3, 4
+✅ azure-monitor-opentelemetry (configure_azure_monitor) — Lab 3
+✅ azure-ai-evaluation (GroundednessEvaluator) — Lab 4
+✅ mcp (Client) — Lab 2
+✅ httpx — Lab 2
+✅ python-dotenv (load_dotenv) — Lab 1, 2, 3, 4
+✅ rich (Console) — Lab 1, 2, 3, 4
 ✅ .env file found
 ⚠️  AIPROJECT_ENDPOINT not set (will be provided at workshop)
+⚠️  AZURE_OPENAI_ENDPOINT not set (will be provided at workshop)
 ✅ Azure CLI available
+✅ Node.js 20.x — OK (Lab 2)
 ```
 
-The `AIPROJECT_ENDPOINT` warning is expected at this stage — you'll fill it in at the workshop.
+The two `⚠️` warnings about endpoints are **expected** before the workshop. Everything else should be green.
+
+If you see **any** ❌ on a package import, fix it on your machine **before** the workshop — proctors will not have time to debug environment issues during labs.
+
+### Step 7 — Cache the Azure CLI bits we'll use
+
+```bash
+az extension add --name ml --yes 2>$null   # PowerShell
+# or
+az extension add --name ml --yes           # bash
+```
+
+This ensures the ML extension is locally available; the labs don't strictly require it but it speeds up some `az ai` flows.
 
 ---
 
-## 🔍 Quick Verification Checklist
+## 🔍 Pre-Workshop Verification Checklist
 
-Before arriving, confirm all of the following:
+Tick every box **before** arriving. If any item is unchecked, you risk losing lab time.
 
-- [ ] Python 3.11+ is installed (`python --version`)
-- [ ] Git is installed (`git --version`)
-- [ ] VS Code is installed with the Python extension
-- [ ] Azure CLI is installed (`az version`)
-- [ ] `az login` works and you can reach your sandbox subscription
-- [ ] Node.js 18+ is installed (`node --version`)
-- [ ] Repository is cloned and you can `cd` into it
-- [ ] Virtual environment created and `pip install -r shared/requirements.txt` succeeds
-- [ ] `python shared/verify_setup.py` runs without errors
-- [ ] Microsoft Authenticator is installed and your account is configured
+**Software**
+- [ ] Python 3.11 or 3.12 installed (`python --version`)
+- [ ] Git installed (`git --version`)
+- [ ] VS Code installed with the Python extension
+- [ ] Azure CLI installed (`az version`)
+- [ ] Node.js 18+ installed (`node --version`)
+- [ ] Microsoft Authenticator installed and your sandbox account configured
+
+**Repo + environment**
+- [ ] Repository cloned and you can `cd Agents-with-Azure-AI-Foundry-v2-Labs`
+- [ ] `.env` file exists (copied from `.env.example`)
+- [ ] `.venv` created and activated (prompt shows `(.venv)`)
+- [ ] `pip install` ran successfully for **all 5** requirements files (shared + 4 labs)
+- [ ] `npx @modelcontextprotocol/server-everything --help` runs without error
+- [ ] `python shared/verify_setup.py` shows **all green** (the two endpoint warnings are OK)
+
+**Azure access**
+- [ ] You received your sandbox credentials email
+- [ ] `az login` succeeds
+- [ ] `az account show` returns the sandbox subscription (not your corporate sub)
+
+**On workshop day — first 5 minutes**
+
+When you sit down:
+
+1. Activate the venv: `.venv\Scripts\Activate.ps1` (or `source .venv/bin/activate`)
+2. Paste the values the instructor gives you into `.env`
+3. Run `python shared/verify_setup.py` one more time — confirm endpoint warnings are now ✅
+4. Open Lab 1 and start
+
+That's it. No installs. No "wait, my pip is stuck." Straight to the lab.
 
 ---
 
