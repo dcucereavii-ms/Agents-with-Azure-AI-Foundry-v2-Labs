@@ -1,20 +1,20 @@
 #!/usr/bin/env python3
 """
-Lab 2 — MCP Agent: Complete Solution
-Demonstrates how to connect an Azure AI agent to an MCP server,
-convert MCP tool schemas to FunctionTool definitions, and handle
-tool call interception and routing.
+Lab 2 — MCP Agent (complete solution).
+
+Attaches an Azure AI Foundry agent to an MCP server *natively* via McpTool.
+The Foundry runtime handles tool discovery, invocation, and result routing —
+no manual bridge code required.
+
+Default MCP server: Microsoft Learn's public MCP endpoint (no auth needed).
+Override with the MCP_SERVER_URL env var to point at your own server.
 """
 
-import asyncio
-import json
 import os
 import sys
 from dotenv import load_dotenv
-from mcp import ClientSession, StdioServerParameters
-from mcp.client.stdio import stdio_client
 from azure.ai.projects import AIProjectClient
-from azure.ai.projects.models import FunctionTool, ToolSet, RunStatus
+from azure.ai.projects.models import McpTool, ToolSet, RunStatus
 from azure.identity import DefaultAzureCredential
 from rich.console import Console
 from rich.panel import Panel
@@ -22,96 +22,66 @@ from rich.panel import Panel
 load_dotenv()
 console = Console()
 
-
-def mcp_tool_to_function_definition(mcp_tool) -> dict:
-    """Convert an MCP tool definition to an Azure AI FunctionTool-compatible dict."""
-    return {
-        "name": mcp_tool.name,
-        "description": mcp_tool.description or "",
-        "parameters": mcp_tool.inputSchema or {"type": "object", "properties": {}},
-    }
+# Microsoft Learn exposes a public MCP server — perfect for workshop demos.
+DEFAULT_MCP_URL = "https://learn.microsoft.com/api/mcp"
 
 
-async def run_agent_with_mcp(queries: list[str]):
-    """Main function — runs the agent pipeline with MCP tools."""
+def run_agent_with_mcp(queries: list[str]) -> int:
+    mcp_url = os.environ.get("MCP_SERVER_URL", DEFAULT_MCP_URL)
+    console.print(f"[dim]Attaching MCP server:[/dim] [cyan]{mcp_url}[/cyan]")
 
-    server_params = StdioServerParameters(
-        command=sys.executable,
-        args=["mcp_server.py"],
+    client = AIProjectClient(
+        endpoint=os.environ["AIPROJECT_ENDPOINT"],
+        credential=DefaultAzureCredential(),
     )
 
-    async with stdio_client(server_params) as (read, write):
-        async with ClientSession(read, write) as session:
-            await session.initialize()
+    # 1. Define the MCP attach — server_label is free-form, server_url is the SSE/HTTP endpoint.
+    mcp_tool = McpTool(server_label="workshop_mcp", server_url=mcp_url)
+    toolset = ToolSet()
+    toolset.add(mcp_tool)
 
-            # Discover tools from MCP server
-            tools_response = await session.list_tools()
-            mcp_tools = tools_response.tools
-            console.print(f"[green]Available MCP tools:[/green] {[t.name for t in mcp_tools]}")
+    # 2. Create an agent with the MCP server attached natively.
+    agent = client.agents.create_agent(
+        model=os.environ.get("MODEL_DEPLOYMENT", "gpt-4o"),
+        name="MCPConnectedAgent",
+        instructions=(
+            "You are a helpful assistant with access to tools provided by an MCP server. "
+            "Use the available tools to answer questions accurately. "
+            "Always cite which tool you used and the data it returned."
+        ),
+        toolset=toolset,
+    )
+    console.print(f"Created agent: [green]{agent.id}[/green]")
 
-            # Build Azure AI FunctionTool definitions from MCP schemas
-            function_defs = [mcp_tool_to_function_definition(t) for t in mcp_tools]
+    try:
+        for query in queries:
+            console.print(f"\n[bold blue]Query:[/bold blue] {query}")
 
-            # Initialize the Azure AI project client
-            client = AIProjectClient(
-                endpoint=os.environ["AIPROJECT_ENDPOINT"],
-                credential=DefaultAzureCredential(),
-            )
+            thread = client.agents.create_thread()
+            client.agents.create_message(thread_id=thread.id, role="user", content=query)
 
-            # Create a FunctionTool set from the MCP tool schemas
-            # In the current SDK, FunctionTool wraps a callable; here we build
-            # the toolset manually using the raw function definitions.
-            functions = FunctionTool(functions=set())  # placeholder; real routing via session below
-            toolset = ToolSet()
-            toolset.add(functions)
+            run = client.agents.create_and_process_run(thread_id=thread.id, agent_id=agent.id)
 
-            # Create the agent with tool awareness
-            agent = client.agents.create_agent(
-                model=os.environ.get("MODEL_DEPLOYMENT", "gpt-4o"),
-                name="MCPConnectedAgent",
-                instructions=(
-                    "You are a helpful assistant with access to weather, documentation search, "
-                    "and product catalog tools. Use the appropriate tool for each query. "
-                    "Always cite the data you retrieved."
-                ),
-                toolset=toolset,
-            )
+            if run.status == RunStatus.COMPLETED:
+                messages = client.agents.list_messages(thread_id=thread.id)
+                for msg in messages.data:
+                    if msg.role == "assistant" and msg.content:
+                        console.print(Panel(msg.content[0].text.value, title="Response"))
+                        break
+            else:
+                console.print(f"[red]Run failed: {run.status} — {run.last_error}[/red]")
 
-            try:
-                for query in queries:
-                    console.print(f"\n[bold blue]Query:[/bold blue] {query}")
+    finally:
+        client.agents.delete_agent(agent.id)
+        console.print("[dim]Agent cleaned up.[/dim]")
 
-                    thread = client.agents.create_thread()
-                    client.agents.create_message(
-                        thread_id=thread.id,
-                        role="user",
-                        content=query,
-                    )
-
-                    run = client.agents.create_and_process_run(
-                        thread_id=thread.id,
-                        agent_id=agent.id,
-                    )
-
-                    if run.status == RunStatus.COMPLETED:
-                        messages = client.agents.list_messages(thread_id=thread.id)
-                        for msg in messages.data:
-                            if msg.role == "assistant":
-                                response = msg.content[0].text.value if msg.content else ""
-                                console.print(Panel(response, title="Response"))
-                                break
-                    else:
-                        console.print(f"[red]Run ended with status: {run.status}[/red]")
-
-            finally:
-                client.agents.delete_agent(agent.id)
-                console.print("[dim]Agent cleaned up[/dim]")
+    return 0
 
 
 if __name__ == "__main__":
     test_queries = [
-        "What's the weather like in Seattle right now?",
-        "Find documentation about MCP protocol",
-        "List all AI-category products",
+        "What is Azure AI Foundry? Use a tool to find the answer.",
+        "Search Microsoft Learn for information about Model Context Protocol.",
+        "Look up the AIProjectClient class and explain what it does.",
     ]
-    asyncio.run(run_agent_with_mcp(test_queries))
+    sys.exit(run_agent_with_mcp(test_queries))

@@ -55,17 +55,7 @@ for r in \
 done
 echo "✓ All Python dependencies installed"
 
-# 7. Pre-cache the MCP server used by Lab 2
-echo "→ Pre-caching Lab 2 MCP server (npx) ..."
-if command -v npx >/dev/null 2>&1; then
-    npx -y @modelcontextprotocol/server-everything --help >/dev/null 2>&1 \
-        && echo "✓ Lab 2 MCP server cached" \
-        || echo "⚠️  npx ran but server-everything failed — re-check before the workshop"
-else
-    echo "⚠️  npx not found — install Node.js 18+ before the workshop"
-fi
-
-# 8. Verify
+# 7. Verify
 echo
 echo "=== Running verify_setup.py ==="
 python shared/verify_setup.py

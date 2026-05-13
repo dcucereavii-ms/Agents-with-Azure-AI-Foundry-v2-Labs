@@ -8,7 +8,6 @@ Your task: complete the configure_tracing() function.
 import os
 from azure.monitor.opentelemetry import configure_azure_monitor
 from opentelemetry import trace
-from opentelemetry.sdk.trace import TracerProvider
 
 
 def configure_tracing(enable_content_recording: bool = True) -> None:

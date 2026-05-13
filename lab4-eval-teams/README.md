@@ -65,6 +65,8 @@ into each evaluator.
 
 ### Step 3 — Run v1 (weak)
 
+> ⏱ **Workshop timing:** each variant run is a live evaluation against the agent and takes **~3–5 minutes**. `--variant both` therefore takes **5–11 minutes**. If you're tight on time, run **`--variant strong` first** (it's the one that passes) to see the gate green, then run `--variant weak` only if time permits.
+
 ```bash
 python evaluate.py --variant weak
 ```

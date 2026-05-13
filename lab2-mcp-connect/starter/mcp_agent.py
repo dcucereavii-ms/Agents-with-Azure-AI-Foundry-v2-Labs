@@ -1,94 +1,64 @@
 #!/usr/bin/env python3
 """
-Lab 2 — MCP Agent
-Connects an Azure AI agent to the MCP server via subprocess transport.
+Lab 2 — MCP Agent (starter).
 
-Your task:
-1. Start the MCP server as a subprocess
-2. Connect to it and list available tools
-3. Create an Azure AI agent that uses those tools
-4. Run test queries
+Attach an Azure AI Foundry agent to an MCP server *natively* via McpTool.
+The Foundry runtime handles tool discovery and invocation — your job is
+just to wire up the McpTool, build the agent, and run queries against it.
+
+Default MCP server: Microsoft Learn's public MCP endpoint.
+Override with the MCP_SERVER_URL env var to point at your own server.
 """
 
-import asyncio
 import os
 import sys
 from dotenv import load_dotenv
-from mcp import ClientSession, StdioServerParameters
-from mcp.client.stdio import stdio_client
 from azure.ai.projects import AIProjectClient
-from azure.ai.projects.models import FunctionTool, ToolSet
+from azure.ai.projects.models import McpTool, ToolSet, RunStatus
 from azure.identity import DefaultAzureCredential
 from rich.console import Console
+from rich.panel import Panel
 
 load_dotenv()
 console = Console()
 
-
-async def connect_to_mcp_server():
-    """
-    TODO: Connect to the MCP server and return the tools list.
-
-    Steps:
-    1. Create StdioServerParameters pointing to mcp_server.py
-       server_params = StdioServerParameters(
-           command=sys.executable,
-           args=["mcp_server.py"],
-       )
-    2. Use stdio_client(server_params) as a context manager
-    3. Create ClientSession(read, write) and call session.initialize()
-    4. Call session.list_tools() to get available tools
-    5. Return the tool list
-
-    Note: For this lab, we'll return the tools list and handle session externally
-    """
-    raise NotImplementedError("TODO: implement connect_to_mcp_server")
+DEFAULT_MCP_URL = "https://learn.microsoft.com/api/mcp"
 
 
-def build_tool_executor(session):
-    """
-    Returns a function that executes MCP tool calls.
-    Pre-built — no changes needed.
-    """
-    async def execute_tool(tool_name: str, **kwargs):
-        result = await session.call_tool(tool_name, arguments=kwargs)
-        return result.content[0].text if result.content else ""
-    return execute_tool
+def run_agent_with_mcp(queries: list[str]) -> int:
+    mcp_url = os.environ.get("MCP_SERVER_URL", DEFAULT_MCP_URL)
+    console.print(f"[dim]Attaching MCP server:[/dim] [cyan]{mcp_url}[/cyan]")
 
-
-async def run_agent_with_mcp(queries: list[str]):
-    """Main function — runs the agent pipeline with MCP tools."""
-
-    server_params = StdioServerParameters(
-        command=sys.executable,
-        args=["mcp_server.py"],
+    client = AIProjectClient(
+        endpoint=os.environ["AIPROJECT_ENDPOINT"],
+        credential=DefaultAzureCredential(),
     )
 
-    async with stdio_client(server_params) as (read, write):
-        async with ClientSession(read, write) as session:
-            await session.initialize()
+    # TODO 1: Build an McpTool pointing at mcp_url with a server_label of your choice.
+    # mcp_tool = McpTool(server_label=..., server_url=...)
+    raise NotImplementedError("TODO 1: build the McpTool")
 
-            # TODO: List tools from the MCP server
-            # tools_response = await session.list_tools()
-            # console.print(f"Available MCP tools: {[t.name for t in tools_response.tools]}")
+    # TODO 2: Add the McpTool to a ToolSet.
+    # toolset = ToolSet(); toolset.add(mcp_tool)
 
-            # TODO: Initialize AIProjectClient
-            # client = AIProjectClient(
-            #     endpoint=os.environ["AIPROJECT_ENDPOINT"],
-            #     credential=DefaultAzureCredential(),
-            # )
+    # TODO 3: Create an agent with the toolset attached.
+    # agent = client.agents.create_agent(
+    #     model=os.environ.get("MODEL_DEPLOYMENT", "gpt-4o"),
+    #     name="MCPConnectedAgent",
+    #     instructions="...",
+    #     toolset=toolset,
+    # )
 
-            # TODO: Create an agent and run each query
-            # For demonstration, print the queries and note what you would do:
-            for query in queries:
-                console.print(f"\n[bold]Query:[/bold] {query}")
-                console.print("[yellow]TODO: Connect agent to MCP and run this query[/yellow]")
+    # TODO 4: For each query, create a thread, post the message, run the agent
+    # to completion with create_and_process_run, and print the assistant reply.
+
+    # TODO 5: In a finally block, delete the agent so the project stays clean.
 
 
 if __name__ == "__main__":
     test_queries = [
-        "What's the weather like in Seattle right now?",
-        "Find documentation about MCP protocol",
-        "List all AI-category products",
+        "What is Azure AI Foundry? Use a tool to find the answer.",
+        "Search Microsoft Learn for information about Model Context Protocol.",
+        "Look up the AIProjectClient class and explain what it does.",
     ]
-    asyncio.run(run_agent_with_mcp(test_queries))
+    sys.exit(run_agent_with_mcp(test_queries))

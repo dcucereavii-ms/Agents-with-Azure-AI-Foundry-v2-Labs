@@ -34,6 +34,7 @@ SDK_IMPORTS = [
     # Lab 2
     ("mcp",                               "ClientSession",             "2"),
     ("mcp",                               "StdioServerParameters",     "2"),
+    ("azure.ai.projects.models",          "McpTool",                   "2"),
     # Lab 3
     ("azure.monitor.opentelemetry",       "configure_azure_monitor",   "3"),
     ("azure.ai.projects.telemetry",       "AIInstrumentor",            "3"),

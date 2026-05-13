@@ -13,9 +13,9 @@
 | 9:35 – 10:05 AM | **Module 3** — Microsoft Agent Framework: Build Agents the Right Way | Presentation + Code Walkthrough |
 | 10:05 – 10:40 AM | **Module 4** — Agent Service: The Managed Runtime for Your Agents | Presentation + Live Demo |
 | 10:40 – 11:10 AM | **Module 5** — MCP + A2A: The Open Standards That Change Everything | Presentation + Live Demo |
-| 11:10 – 11:35 AM | **Module 6** — Ship It: Voice, Teams, Evals, Production | Presentation + Demo |
+| 11:10 – 11:35 AM | **Module 6** — Ship It: Evals, Promotion, Production | Presentation + Demo |
 | 11:35 AM – 12:30 PM | *Lunch Break* | — |
-| 12:30 – 1:05 PM | **Lab 1** — Your First Multi-Agent System with MAF | Hands-On Lab |
+| 12:30 – 1:05 PM | **Lab 1** — Your First Multi-Agent System (Agent-to-Agent orchestration) | Hands-On Lab |
 | 1:05 – 1:45 PM | **Lab 2** — MCP Power Hour: Connect Anything in Minutes | Hands-On Lab |
 | 1:45 – 2:20 PM | **Lab 3** — Deploy & Observe: Foundry Agent Service + Tracing | Hands-On Lab |
 | 2:20 – 2:55 PM | **Lab 4** — Ship It: Eval Gate + Iterate to Production | Hands-On Lab |
@@ -23,6 +23,12 @@
 
 > **Morning** = presentations + demos. **Afternoon** = 4 hands-on labs back-to-back.
 > Pre-workshop setup (below) is required so the afternoon starts at minute one.
+>
+> **Lab ↔ Module map:**
+> - Lab 1 is the practical companion to Module 3 (MAF) and Module 5 (A2A — the orchestrator → researcher → writer pattern *is* agent-to-agent).
+> - Lab 2 is the practical companion to Module 5 (MCP).
+> - Lab 3 is the practical companion to Module 4 (Agent Service runtime + tracing).
+> - Lab 4 is the practical companion to Module 6 (Evals + production promotion).
 
 ---
 
@@ -139,20 +145,11 @@ az version
 
 ---
 
-### 5. Node.js 18+ (Required for Lab 2)
+### 5. (Optional) Node.js 18+
 
-Lab 2 uses MCP tooling that requires Node.js.
+Node is **not required** for any lab in this workshop — Lab 2's MCP server is pure Python and Lab 2's Foundry-attached MCP server is reached over HTTP. Install Node only if you want to do Lab 2 bonus track B (exposing your local server over HTTP via `mcp dev`).
 
 - **Download:** https://nodejs.org/ (choose the LTS version)
-
-**Verify:**
-```bash
-node --version
-# Expected: v18.x.x or v20.x.x
-
-npm --version
-# Expected: 9.x.x or 10.x.x
-```
 
 ---
 
@@ -284,17 +281,7 @@ for d in shared lab1-multi-agent-maf lab2-mcp-connect lab3-deploy-observe lab4-e
 done
 ```
 
-### Step 5 — Install Node.js dependencies for Lab 2
-
-Lab 2 uses an MCP server that runs on Node. Pre-fetch the npm package now so you don't wait at the workshop:
-
-```bash
-npx -y @modelcontextprotocol/server-everything --help
-```
-
-This downloads and caches the reference MCP server. You should see a help message and exit. If it hangs or errors, fix it before the workshop.
-
-### Step 6 — Verify your setup
+### Step 5 — Verify your setup
 
 ```bash
 python shared/verify_setup.py
@@ -322,14 +309,13 @@ A successful pre-workshop run looks like:
 ⚠️  AIPROJECT_ENDPOINT not set (will be provided at workshop)
 ⚠️  AZURE_OPENAI_ENDPOINT not set (will be provided at workshop)
 ✅ Azure CLI available
-✅ Node.js 20.x — OK (Lab 2)
 ```
 
 The two `⚠️` warnings about endpoints are **expected** before the workshop. Everything else should be green.
 
 If you see **any** ❌ on a package import, fix it on your machine **before** the workshop — proctors will not have time to debug environment issues during labs.
 
-### Step 7 — Cache the Azure CLI bits we'll use
+### Step 6 — Cache the Azure CLI bits we'll use
 
 ```bash
 az extension add --name ml --yes 2>$null   # PowerShell
@@ -350,7 +336,6 @@ Tick every box **before** arriving. If any item is unchecked, you risk losing la
 - [ ] Git installed (`git --version`)
 - [ ] VS Code installed with the Python extension
 - [ ] Azure CLI installed (`az version`)
-- [ ] Node.js 18+ installed (`node --version`)
 - [ ] Microsoft Authenticator installed and your sandbox account configured
 
 **Repo + environment**
@@ -358,7 +343,6 @@ Tick every box **before** arriving. If any item is unchecked, you risk losing la
 - [ ] `.env` file exists (copied from `.env.example`)
 - [ ] `.venv` created and activated (prompt shows `(.venv)`)
 - [ ] `pip install` ran successfully for **all 5** requirements files (shared + 4 labs)
-- [ ] `npx @modelcontextprotocol/server-everything --help` runs without error
 - [ ] `python shared/verify_setup.py` shows **all green** (the two endpoint warnings are OK)
 
 **Azure access**
@@ -395,9 +379,9 @@ Build a multi-agent research pipeline using the Azure AI Foundry v2 agents SDK. 
 ### Lab 2 — MCP Power Hour: Connect Anything in Minutes
 **⏱ 40 minutes**
 
-Build a custom MCP (Model Context Protocol) server that exposes tools, then connect an Azure AI agent to consume those tools. Understand how MCP enables pluggable, reusable tool infrastructure that any LLM can call.
+Build a custom MCP (Model Context Protocol) server in Python, test it standalone, then attach a **remote** MCP server to a Foundry agent natively via `McpTool`. By default the agent talks to the public Microsoft Learn MCP endpoint — no auth, no infra. Bonus tracks expose your local server over HTTP and attach multiple MCP servers at once.
 
-**You'll learn:** MCP server implementation, stdio transport, tool schema definition, connecting Azure AI agents to external tool servers.
+**You'll learn:** MCP server implementation, stdio transport, tool schemas, the native `McpTool` attach in `azure-ai-projects`, why Foundry doesn't need a hand-rolled bridge.
 
 ---
 
@@ -417,7 +401,20 @@ Add a quality gate using Azure AI Evaluation. Run Groundedness, Coherence, Relev
 
 **You'll learn:** `azure-ai-evaluation` SDK with live agent targets, weak→strong iteration loops, deterministic + LLM-judge evaluator blends, tolerant metric-key lookup, metadata-driven agent promotion.
 
+> ⏱ **Timing tip:** the full `--variant both` run takes 5–11 minutes (two live evaluation passes). For workshop pace, start with `python evaluate.py --variant strong` (~3 min) to show the gate passing, then run `--variant weak` afterwards if time allows. The README inside `lab4-eval-teams/` documents both flags.
+
 > The directory name `lab4-eval-teams` is retained for backward-compat. The Teams deployment step has been removed — in Foundry v2 the realistic promotion artifact is metadata + a Playground URL, not a Teams app package.
+
+---
+
+## 📜 SDK pinning note
+
+All labs pin `azure-ai-projects==1.0.0b11`. This is **intentional** — it is the last beta whose surface matches what's shown in the Foundry portal today (`AIProjectClient`, `agents.create_agent`, `toolset`, `McpTool`, etc.). The 2.x release is a breaking redesign of the SDK surface that doesn't match these labs.
+
+**Plan to migrate.** When you bring this material back to your team:
+1. Run the labs on `b11` first so you understand the working baseline.
+2. Re-run with the latest `azure-ai-projects` 2.x and adapt: most calls move under `client.agents.runs.*` and tool definitions move to `Tool*Definition` classes.
+3. Track breaking changes here: https://github.com/Azure/azure-sdk-for-python/blob/main/sdk/ai/azure-ai-projects/CHANGELOG.md
 
 ---
 

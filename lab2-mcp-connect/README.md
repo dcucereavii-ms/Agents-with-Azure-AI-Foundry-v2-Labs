@@ -1,37 +1,36 @@
 # Lab 2 — MCP Power Hour: Connect Anything in Minutes
 
-**Duration:** 40 minutes  
+**Duration:** 40 minutes
 **Skill level:** Intermediate
 
 ---
 
 ## 🎯 What You'll Build
 
-A **custom MCP (Model Context Protocol) server** that exposes three tools, and an **Azure AI agent** that connects to that server and uses those tools to answer real queries.
+Two complementary pieces of MCP:
+
+1. **A custom MCP server** (`mcp_server.py`) — three tools exposed over stdio, so you understand what an MCP server *is*.
+2. **A Foundry agent attached to a remote MCP server** (`mcp_agent.py`) — uses the native `McpTool` integration. By default it points at the public **Microsoft Learn MCP server**; change `MCP_SERVER_URL` to attach any other MCP endpoint (your own, GitHub MCP, etc.).
 
 ```
-┌──────────────────────────────────────────────────────────┐
-│                    mcp_agent.py                          │
-│  AIProjectClient → Azure AI Agent                        │
-│       │                                                  │
-│       │  (subprocess / stdio transport)                  │
-│       ▼                                                  │
-│  ┌────────────────────────────────────────────────────┐  │
-│  │              mcp_server.py                         │  │
-│  │  Tool: get_weather  (mock weather API)             │  │
-│  │  Tool: search_docs  (mock knowledge base)          │  │
-│  │  Tool: list_products (mock product catalog)        │  │
-│  └────────────────────────────────────────────────────┘  │
-└──────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────┐
+│              Part A — your MCP server (local, stdio)             │
+│   mcp_server.py: get_weather · search_docs · list_products       │
+│   You test it standalone — no agent needed.                      │
+└──────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────┐
+│           Part B — Foundry agent + remote MCP server             │
+│                                                                  │
+│   AIProjectClient → Agent (McpTool attached natively)            │
+│                              │                                   │
+│                              ▼                                   │
+│            https://learn.microsoft.com/api/mcp                   │
+│   Foundry runtime handles discovery + invocation. No bridge.     │
+└──────────────────────────────────────────────────────────────────┘
 ```
 
-**Flow:**
-1. `mcp_agent.py` launches `mcp_server.py` as a child process
-2. Agent discovers available tools via MCP `list_tools` call
-3. User queries are sent to the Azure AI agent
-4. Agent decides which MCP tool to call and passes arguments
-5. MCP server executes the tool and returns results
-6. Agent synthesizes the final response
+> **Why two parts?** Part A teaches what MCP *is* — a tiny protocol any server can speak. Part B teaches the production pattern on Foundry v2: attach an MCP endpoint and let the runtime do the work. Earlier versions of this lab tried to hand-roll a bridge between the two; the Foundry-native attach is shorter, more correct, and what you'll actually ship.
 
 ---
 
@@ -42,11 +41,16 @@ cd lab2-mcp-connect
 pip install -r requirements.txt
 ```
 
-Confirm your `.env` has `AIPROJECT_ENDPOINT` and `MODEL_DEPLOYMENT` set.
+Confirm your `.env` has:
+- `AIPROJECT_ENDPOINT`
+- `MODEL_DEPLOYMENT`
+- (Optional) `MCP_SERVER_URL` — defaults to `https://learn.microsoft.com/api/mcp` if not set.
 
 ---
 
-## Step 1 — Explore the MCP Server Starter
+## Part A — Build a local MCP server
+
+### Step 1 — Explore the starter
 
 Open `starter/mcp_server.py` and review the structure:
 
@@ -57,22 +61,14 @@ Open `starter/mcp_server.py` and review the structure:
 - **`handle_search_docs()`** — your second TODO
 - **`DOCS`** — the mock document store list already provided
 
-Notice how each tool is declared with a JSON Schema (`inputSchema`) and how the handler returns `list[mcp_types.TextContent]`.
+### Step 2 — Implement the two tool handlers
 
----
-
-## Step 2 — Implement Two MCP Tool Handlers
-
-### 2a — `handle_get_weather()`
-
-Return a mock weather response. Use the `city` and `units` arguments:
+**`handle_get_weather()`** — mock weather response:
 
 ```python
 async def handle_get_weather(args: dict) -> list[mcp_types.TextContent]:
     city = args["city"]
     units = args.get("units", "celsius")
-    
-    # Mock weather data — no real API needed
     weather = {
         "city": city,
         "temperature": 15 if units == "celsius" else 59,
@@ -84,63 +80,60 @@ async def handle_get_weather(args: dict) -> list[mcp_types.TextContent]:
     return [mcp_types.TextContent(type="text", text=json.dumps(weather, indent=2))]
 ```
 
-### 2b — `handle_search_docs()`
-
-Search the `DOCS` list by keyword match and return up to `max_results` results:
+**`handle_search_docs()`** — keyword search over `DOCS`:
 
 ```python
 async def handle_search_docs(args: dict) -> list[mcp_types.TextContent]:
     query = args["query"].lower()
     max_results = args.get("max_results", 3)
-    
     results = [
         doc for doc in DOCS
         if query in doc["title"].lower() or query in doc["content"].lower()
     ][:max_results]
-    
     return [mcp_types.TextContent(type="text", text=json.dumps(results, indent=2))]
 ```
 
-> 💡 **Why return JSON strings?** MCP tool results are always plain text. Returning JSON inside a TextContent object lets the LLM parse and reason about structured data.
-
----
-
-## Step 3 — Test the MCP Server Standalone
-
-Before connecting an agent, verify the server works on its own:
+### Step 3 — Test the server standalone
 
 ```bash
 cd starter
 python mcp_server.py
 ```
 
-The server starts and waits on stdin. You can use the `mcp` CLI to test it (if installed):
+The server starts and waits on stdin. In a second terminal, send a list-tools request:
 
 ```bash
-# In a second terminal:
 echo '{"method":"tools/list","params":{},"id":1,"jsonrpc":"2.0"}' | python mcp_server.py
 ```
 
-You should see the list of 3 tools returned. Press Ctrl+C to stop the server.
+You should see all 3 tools returned. Press Ctrl+C to stop.
+
+> 💡 **What just happened?** You built a self-contained MCP server. Any MCP-compatible client (Claude Desktop, VS Code, Foundry, an IDE plugin, etc.) can now plug into it without any custom integration code. That's the whole point of MCP.
 
 ---
 
-## Step 4 — Connect the Azure AI Agent to the MCP Server
+## Part B — Attach a remote MCP server to a Foundry agent
 
-Open `starter/mcp_agent.py`. Complete the `run_agent_with_mcp()` function:
+### Step 4 — Wire up the McpTool
 
-1. **Uncomment the `list_tools` call** to discover available tools
-2. **Initialize `AIProjectClient`** with your endpoint and `DefaultAzureCredential()`
-3. **Create an agent** that knows about the MCP tools:
-   - Convert each MCP tool schema to a `FunctionTool` definition
-   - Add them to a `ToolSet`
-4. **For each query**, run the agent and let it call MCP tools as needed
+Open `starter/mcp_agent.py`. Complete the five TODOs in `run_agent_with_mcp()`:
 
-> 💡 **Key insight:** The Azure AI agent doesn't call MCP directly — your code intercepts tool calls from the agent run, routes them to the MCP session, and returns results. See the solution for the complete pattern.
+1. Build `McpTool(server_label=..., server_url=mcp_url)`.
+2. Add it to a `ToolSet`.
+3. Create the agent with the toolset attached.
+4. For each query: create a thread, post the message, run with `create_and_process_run`, print the response.
+5. Delete the agent in a `finally` block.
 
----
+The key line is just:
 
-## Step 5 — Run End-to-End Queries
+```python
+mcp_tool = McpTool(server_label="workshop_mcp", server_url=mcp_url)
+toolset = ToolSet(); toolset.add(mcp_tool)
+```
+
+Foundry handles the rest — tool discovery, schema, invocation, result routing.
+
+### Step 5 — Run end-to-end
 
 ```bash
 cd starter
@@ -148,18 +141,19 @@ python mcp_agent.py
 ```
 
 Expected output:
-```
-Available MCP tools: ['get_weather', 'search_docs', 'list_products']
 
-Query: What's the weather like in Seattle right now?
-  → Tool call: get_weather(city='Seattle', units='celsius')
-  → Result: {"city": "Seattle", "temperature": 15, ...}
-Response: The current weather in Seattle is partly cloudy with a temperature of 15°C...
-
-Query: Find documentation about MCP protocol
-  → Tool call: search_docs(query='MCP protocol', max_results=3)
-  ...
 ```
+Attaching MCP server: https://learn.microsoft.com/api/mcp
+Created agent: asst_...
+
+Query: What is Azure AI Foundry? Use a tool to find the answer.
+╭─ Response ────────────────────────────────────────────╮
+│ Azure AI Foundry is Microsoft's unified platform...   │
+│ (citing the Microsoft Learn MCP search tool)          │
+╰───────────────────────────────────────────────────────╯
+```
+
+You should see at least one of the responses reference a tool call — the agent is reaching into Microsoft Learn through MCP and grounding its answer in live documentation.
 
 ---
 
@@ -167,20 +161,19 @@ Query: Find documentation about MCP protocol
 
 - [ ] `python mcp_server.py` starts without errors
 - [ ] `get_weather` returns a valid JSON weather object
-- [ ] `search_docs` returns matching documents from the `DOCS` list
-- [ ] `python mcp_agent.py` connects to the server and lists all 3 tools
-- [ ] At least one test query results in a tool call and a meaningful response
+- [ ] `search_docs` returns matching documents from `DOCS`
+- [ ] `python mcp_agent.py` connects to the remote MCP server and responds to all 3 queries
+- [ ] At least one response cites the MCP tool that produced the data
 
 ---
 
-## 🏆 Bonus: Add a Third Tool
+## 🏆 Bonus tracks
 
-Add a new tool called `get_stock_price` that returns mock stock data:
+**A. Add a third tool to your local MCP server.** Add `get_stock_price` to `list_tools()`, write `handle_get_stock_price()` with mock data, and route it in `call_tool()`.
 
-1. Add the tool schema to `list_tools()` in `mcp_server.py`
-2. Add a handler `handle_get_stock_price()` with mock data
-3. Add the routing case in `call_tool()`
-4. Test with a query like "What's the current price of Microsoft stock?"
+**B. Point the agent at your own MCP server.** Expose your local `mcp_server.py` over HTTP (e.g. with a tiny FastAPI wrapper or `mcp dev`), tunnel it with `devtunnel` or `ngrok`, set `MCP_SERVER_URL` to the public URL, and rerun `mcp_agent.py`. The agent now talks to *your* server through the same `McpTool` attach.
+
+**C. Attach two MCP servers at once.** Call `toolset.add(mcp_tool_a); toolset.add(mcp_tool_b)`. Watch the agent route the right query to the right server.
 
 ---
 
@@ -188,27 +181,9 @@ Add a new tool called `get_stock_price` that returns mock stock data:
 
 | Concept | What It Is |
 |---|---|
-| **MCP (Model Context Protocol)** | An open standard for connecting LLMs to external tools and data sources via a uniform interface |
-| **stdio transport** | The simplest MCP transport — uses stdin/stdout for process-to-process communication |
+| **MCP (Model Context Protocol)** | Open standard for connecting LLMs to external tools and data sources via a uniform interface |
+| **stdio transport** | The simplest MCP transport — uses stdin/stdout for process-to-process communication (Part A) |
+| **HTTP/SSE transport** | What Foundry attaches to natively via `McpTool` (Part B) |
+| **`McpTool`** | The Foundry-native way to attach an MCP server to an agent — no bridge code required |
 | **Tool schema** | JSON Schema definition of a tool's name, description, and input parameters |
-| **`ClientSession`** | The MCP client that manages the protocol handshake and tool call routing |
-| **`StdioServerParameters`** | Configuration for launching an MCP server as a subprocess |
-| **Tool call interception** | The pattern of intercepting agent tool calls and routing them to the appropriate backend |
-
----
-
-## 🌟 Bonus track — Native MCP attach (Foundry v2 pattern)
-
-The main lab teaches the **manual bridging** pattern (subprocess + ClientSession + intercept tool calls). This is the right mental model for *understanding* MCP.
-
-In production on Foundry v2 you typically attach an MCP server **natively** via McpTool, and the runtime handles discovery + invocation for you:
-
-```python
-from azure.ai.projects.models import McpTool, ToolSet
-
-mcp_tool = McpTool(server_label="workshop-mcp", server_url=os.environ["MCP_SERVER_URL"])
-toolset = ToolSet(); toolset.add(mcp_tool)
-agent = client.agents.create_agent(model=..., name=..., instructions=..., toolset=toolset)
-```
-
-A complete runnable example is in solution/mcp_agent_native.py. It requires an HTTP/SSE-reachable MCP endpoint (Foundry does not accept stdio servers directly).
+| **`ClientSession`** | The Python MCP client used in Part A when you test the server standalone |

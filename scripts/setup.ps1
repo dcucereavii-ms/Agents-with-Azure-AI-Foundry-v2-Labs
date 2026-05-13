@@ -56,16 +56,7 @@ foreach ($r in $reqs) {
 }
 Write-Host "✓ All Python dependencies installed"
 
-# 7. Pre-cache the MCP server used by Lab 2
-Write-Host "→ Pre-caching Lab 2 MCP server (npx) ..."
-try {
-    npx -y @modelcontextprotocol/server-everything --help *> $null
-    Write-Host "✓ Lab 2 MCP server cached"
-} catch {
-    Write-Host "⚠️  npx not found or failed — install Node.js 18+ before the workshop" -ForegroundColor Yellow
-}
-
-# 8. Verify
+# 7. Verify
 Write-Host ""
 Write-Host "=== Running verify_setup.py ===" -ForegroundColor Cyan
 python shared/verify_setup.py
