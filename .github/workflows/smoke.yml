@@ -1,0 +1,76 @@
+name: Smoke - lab requirements
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  install-and-import:
+    name: ${{ matrix.lab }} on Python ${{ matrix.python }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.11", "3.12"]
+        lab:
+          - lab1-multi-agent-maf
+          - lab2-mcp-connect
+          - lab3-deploy-observe
+          - lab4-eval-teams
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+
+      - name: Install lab requirements
+        working-directory: ${{ matrix.lab }}
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Import check (verify_setup, no Azure calls)
+        env:
+          # Stops verify_setup.py from failing on missing .env at import time.
+          SMOKE_TEST: "1"
+        run: |
+          python - <<'PY'
+          import importlib, sys
+
+          modules = [
+              "azure.ai.projects",
+              "azure.identity",
+              "azure.monitor.opentelemetry",
+              "opentelemetry.sdk.trace",
+              "opentelemetry.api" if False else "opentelemetry.trace",
+              "dotenv",
+              "rich",
+          ]
+          failed = []
+          for m in modules:
+              try:
+                  importlib.import_module(m)
+                  print(f"ok    {m}")
+              except Exception as e:
+                  print(f"FAIL  {m}: {e}")
+                  failed.append(m)
+          sys.exit(1 if failed else 0)
+          PY
+
+      - name: Lab-specific import check
+        if: matrix.lab == 'lab2-mcp-connect'
+        run: python -c "import mcp, httpx; print('mcp', mcp.__version__ if hasattr(mcp, '__version__') else 'ok')"
+
+      - name: Lab-specific import check (eval)
+        if: matrix.lab == 'lab4-eval-teams'
+        run: python -c "import azure.ai.evaluation; print('azure-ai-evaluation ok')"
+
+      - name: Syntax check all .py files in lab
+        working-directory: ${{ matrix.lab }}
+        run: python -m compileall -q .

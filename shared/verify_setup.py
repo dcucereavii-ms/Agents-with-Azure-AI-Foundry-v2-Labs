@@ -1,7 +1,17 @@
 #!/usr/bin/env python3
 """
-Verify that the workshop environment is correctly set up.
-Run this after completing the pre-lab setup steps in README.md.
+Verify the workshop environment is correctly set up.
+
+Run this from the repo root *after* installing each lab's requirements:
+
+    python shared/verify_setup.py
+
+Checks:
+  - Python 3.11+
+  - All SDK classes used by Labs 1-4 are importable (catches version drift)
+  - .env file exists
+  - AIPROJECT_ENDPOINT looks plausible (warning only)
+  - Azure CLI is installed
 """
 
 import sys
@@ -10,32 +20,39 @@ import subprocess
 import importlib
 from pathlib import Path
 
-REQUIRED_PACKAGES = [
-    "azure.ai.projects",
-    "azure.identity",
-    "azure.monitor.opentelemetry",
-    "opentelemetry",
-    "dotenv",
-    "rich",
+# (module_path, class_or_attr_name, used_by_lab) — class-level imports catch
+# breakage that simple `import` checks miss.
+SDK_IMPORTS = [
+    # core (every lab)
+    ("azure.ai.projects",                 "AIProjectClient",           "all"),
+    ("azure.identity",                    "DefaultAzureCredential",    "all"),
+    ("dotenv",                            "load_dotenv",               "all"),
+    ("rich.console",                      "Console",                   "all"),
+    # Lab 1
+    ("azure.ai.projects.models",          "BingGroundingTool",         "1"),
+    ("azure.ai.projects.models",          "ToolSet",                   "1"),
+    # Lab 2
+    ("mcp",                               "ClientSession",             "2"),
+    ("mcp",                               "StdioServerParameters",     "2"),
+    # Lab 3
+    ("azure.monitor.opentelemetry",       "configure_azure_monitor",   "3"),
+    ("azure.ai.projects.telemetry",       "AIInstrumentor",            "3"),
+    ("azure.ai.projects.models",          "CodeInterpreterTool",       "3,4"),
+    # Lab 4
+    ("azure.ai.evaluation",               "GroundednessEvaluator",     "4"),
+    ("azure.ai.evaluation",               "CoherenceEvaluator",        "4"),
+    ("azure.ai.evaluation",               "RelevanceEvaluator",        "4"),
+    ("azure.ai.evaluation",               "evaluate",                  "4"),
 ]
 
-GREEN = "\033[92m"
-RED = "\033[91m"
-YELLOW = "\033[93m"
-RESET = "\033[0m"
-BOLD = "\033[1m"
+GREEN, RED, YELLOW, RESET, BOLD = "\033[92m", "\033[91m", "\033[93m", "\033[0m", "\033[1m"
 
 
-def check(label: str, ok: bool, warn: bool = False, detail: str = "") -> bool:
-    if ok:
-        symbol = f"{GREEN}✅{RESET}"
-    elif warn:
-        symbol = f"{YELLOW}⚠️ {RESET}"
-    else:
-        symbol = f"{RED}❌{RESET}"
+def check(label, ok, warn=False, detail=""):
+    symbol = f"{GREEN}OK{RESET}" if ok else (f"{YELLOW}WARN{RESET}" if warn else f"{RED}FAIL{RESET}")
     suffix = f"  {detail}" if detail else ""
-    print(f"  {symbol}  {label}{suffix}")
-    return ok
+    print(f"  [{symbol}] {label}{suffix}")
+    return ok or warn
 
 
 def main():
@@ -48,29 +65,36 @@ def main():
     results.append(check(
         f"Python {major}.{minor}.{sys.version_info.micro}",
         ver_ok,
-        detail="(need 3.11+)" if not ver_ok else "— OK",
+        detail="(need 3.11+)" if not ver_ok else "",
     ))
 
-    # Required packages
+    # SDK class-level imports
     print()
-    for pkg in REQUIRED_PACKAGES:
+    failed_labs = set()
+    for module_path, attr_name, used_by in SDK_IMPORTS:
+        label = f"{module_path}.{attr_name}  [lab {used_by}]"
         try:
-            importlib.import_module(pkg)
-            results.append(check(f"{pkg}", True, detail="— importable"))
-        except ImportError:
-            results.append(check(f"{pkg}", False, detail="— NOT FOUND (run: pip install -r shared/requirements.txt)"))
+            module = importlib.import_module(module_path)
+            if not hasattr(module, attr_name):
+                results.append(check(label, False, detail=f"attribute missing — SDK version drift"))
+                failed_labs.add(used_by)
+            else:
+                results.append(check(label, True))
+        except ImportError as e:
+            results.append(check(label, False, detail=f"{type(e).__name__}: {e}"))
+            failed_labs.add(used_by)
 
     # .env file
     print()
-    env_path = Path(__file__).parent.parent / ".env"
+    repo_root = Path(__file__).resolve().parent.parent
+    env_path = repo_root / ".env"
     env_exists = env_path.exists()
     results.append(check(
-        ".env file found",
+        ".env file present",
         env_exists,
-        detail=str(env_path) if env_exists else "— copy .env.example → .env",
+        detail=str(env_path) if env_exists else "copy .env.example to .env",
     ))
 
-    # AIPROJECT_ENDPOINT
     if env_exists:
         from dotenv import load_dotenv
         load_dotenv(env_path)
@@ -78,10 +102,10 @@ def main():
     endpoint = os.environ.get("AIPROJECT_ENDPOINT", "")
     endpoint_set = bool(endpoint) and "<" not in endpoint
     results.append(check(
-        "AIPROJECT_ENDPOINT is set",
+        "AIPROJECT_ENDPOINT set",
         endpoint_set,
         warn=not endpoint_set,
-        detail="— will be provided at workshop" if not endpoint_set else f"→ {endpoint[:40]}...",
+        detail="will be provided at workshop" if not endpoint_set else "",
     ))
 
     # Azure CLI
@@ -89,12 +113,14 @@ def main():
     try:
         result = subprocess.run(
             ["az", "version", "--output", "json"],
-            capture_output=True, text=True, timeout=10
+            capture_output=True, text=True, timeout=10,
         )
         az_ok = result.returncode == 0
-        results.append(check("Azure CLI available", az_ok, detail="— found" if az_ok else "— not found (install from aka.ms/installazurecli)"))
+        results.append(check("Azure CLI available", az_ok,
+                             detail="" if az_ok else "install from aka.ms/installazurecli"))
     except (FileNotFoundError, subprocess.TimeoutExpired):
-        results.append(check("Azure CLI available", False, detail="— not found (install from aka.ms/installazurecli)"))
+        results.append(check("Azure CLI available", False,
+                             detail="install from aka.ms/installazurecli"))
 
     # Summary
     passes = sum(results)
@@ -102,13 +128,16 @@ def main():
     print(f"\n{BOLD}Result: {passes}/{total} checks passed{RESET}")
 
     if passes == total:
-        print(f"\n{GREEN}{BOLD}🎉 All checks passed — you're ready for the workshop!{RESET}\n")
-    elif passes >= total - 1:
-        print(f"\n{YELLOW}Almost there — fix the items above before the workshop.{RESET}\n")
-    else:
-        print(f"\n{RED}Please fix the failing checks before the workshop.{RESET}")
-        print(f"If you need help, contact the workshop team or raise your hand during setup.\n")
+        print(f"\n{GREEN}{BOLD}All checks passed — you're ready for the workshop.{RESET}\n")
+        return 0
+
+    if failed_labs:
+        print(f"\n{YELLOW}SDK import failures affect lab(s): {', '.join(sorted(failed_labs))}{RESET}")
+        print(f"Run:  pip install -r lab<N>/requirements.txt")
+
+    print()
+    return 1
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

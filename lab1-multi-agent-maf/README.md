@@ -1,7 +1,9 @@
-# Lab 1 — Your First Multi-Agent System with Microsoft Agent Framework
+# Lab 1 — Your First Multi-Agent System on Azure AI Agent Service
 
 **Duration:** 35 minutes  
 **Skill level:** Beginner / Intermediate
+
+> **Note on naming.** This lab uses the **Azure AI Agent Service** SDK (`azure-ai-projects`) — *not* the standalone Microsoft Agent Framework (MAF / `agent-framework`) package. The directory name `lab1-multi-agent-maf` is retained to avoid breaking links; the lab content targets the Foundry Agent Service surface end-to-end.
 
 ---
 

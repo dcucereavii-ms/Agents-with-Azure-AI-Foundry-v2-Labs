@@ -248,12 +248,14 @@ Before arriving, confirm all of the following:
 
 ## 📚 Workshop Labs Overview
 
-### Lab 1 — Your First Multi-Agent System with Microsoft Agent Framework
+### Lab 1 — Your First Multi-Agent System on Azure AI Agent Service
 **⏱ 35 minutes**
 
 Build a multi-agent research pipeline using the Azure AI Foundry v2 agents SDK. You'll create a `ResearcherAgent` (with Bing grounding for web search), a `WriterAgent` (for synthesizing reports), and an `Orchestrator` that coordinates them end-to-end.
 
 **You'll learn:** Agent creation, BingGroundingTool, ToolSet, AgentThread lifecycle, agent-to-agent orchestration patterns.
+
+> The directory name `lab1-multi-agent-maf` is retained for backward-compat with earlier workshop links. The lab uses the Foundry Agent Service SDK directly — no separate MAF runtime is required.
 
 ---
 
@@ -275,12 +277,14 @@ Instrument an agent with OpenTelemetry tracing, deploy it to Azure AI Agent Serv
 
 ---
 
-### Lab 4 — Ship It: Eval Gate + Live Deployment to Teams
+### Lab 4 — Ship It: Evaluate, Iterate, Promote
 **⏱ 35 minutes**
 
-Add a quality gate using Azure AI Evaluation before deploying. Run Groundedness, Coherence, and Relevance evaluators on agent responses, implement a pass/fail threshold gate, and configure the agent for Microsoft Teams deployment.
+Add a quality gate using Azure AI Evaluation. Run Groundedness, Coherence, Relevance, and a deterministic citation evaluator against the agent's **live** responses. Watch a weak instruction set fail the gate, fix it, watch the strong version pass, then promote the agent by stamping metadata and surfacing the Foundry Playground URL.
 
-**You'll learn:** `azure-ai-evaluation` SDK, evaluation datasets, scoring thresholds, Teams channel configuration via Azure AI Foundry portal.
+**You'll learn:** `azure-ai-evaluation` SDK with live agent targets, weak→strong iteration loops, deterministic + LLM-judge evaluator blends, tolerant metric-key lookup, metadata-driven agent promotion.
+
+> The directory name `lab4-eval-teams` is retained for backward-compat. The Teams deployment step has been removed — in Foundry v2 the realistic promotion artifact is metadata + a Playground URL, not a Teams app package.
 
 ---
 

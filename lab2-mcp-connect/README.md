@@ -194,3 +194,21 @@ Add a new tool called `get_stock_price` that returns mock stock data:
 | **`ClientSession`** | The MCP client that manages the protocol handshake and tool call routing |
 | **`StdioServerParameters`** | Configuration for launching an MCP server as a subprocess |
 | **Tool call interception** | The pattern of intercepting agent tool calls and routing them to the appropriate backend |
+
+---
+
+## 🌟 Bonus track — Native MCP attach (Foundry v2 pattern)
+
+The main lab teaches the **manual bridging** pattern (subprocess + ClientSession + intercept tool calls). This is the right mental model for *understanding* MCP.
+
+In production on Foundry v2 you typically attach an MCP server **natively** via McpTool, and the runtime handles discovery + invocation for you:
+
+```python
+from azure.ai.projects.models import McpTool, ToolSet
+
+mcp_tool = McpTool(server_label="workshop-mcp", server_url=os.environ["MCP_SERVER_URL"])
+toolset = ToolSet(); toolset.add(mcp_tool)
+agent = client.agents.create_agent(model=..., name=..., instructions=..., toolset=toolset)
+```
+
+A complete runnable example is in solution/mcp_agent_native.py. It requires an HTTP/SSE-reachable MCP endpoint (Foundry does not accept stdio servers directly).
