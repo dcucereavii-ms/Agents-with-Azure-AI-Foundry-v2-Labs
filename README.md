@@ -1,5 +1,31 @@
 # From Prototype to Production: Building Real Agents with Azure AI Foundry v2
 
+*Azure AI Foundry v2 + Microsoft Agent Framework — Advanced Workshop*
+
+---
+
+## 🗓️ Workshop Agenda
+
+| Time | Session | Format |
+|---|---|---|
+| 9:00 – 9:20 AM | **Module 1** — The Agent Production Gap: Where Most Devs Get Stuck | Presentation |
+| 9:20 – 9:35 AM | **Module 2** — The Model Catalog: Right Model, Right Task, Right Cost | Presentation + Live Demo |
+| 9:35 – 10:05 AM | **Module 3** — Microsoft Agent Framework: Build Agents the Right Way | Presentation + Code Walkthrough |
+| 10:05 – 10:40 AM | **Module 4** — Agent Service: The Managed Runtime for Your Agents | Presentation + Live Demo |
+| 10:40 – 11:10 AM | **Module 5** — MCP + A2A: The Open Standards That Change Everything | Presentation + Live Demo |
+| 11:10 – 11:35 AM | **Module 6** — Ship It: Voice, Teams, Evals, Production | Presentation + Demo |
+| 11:35 AM – 12:30 PM | *Lunch Break* | — |
+| 12:30 – 1:05 PM | **Lab 1** — Your First Multi-Agent System with MAF | Hands-On Lab |
+| 1:05 – 1:45 PM | **Lab 2** — MCP Power Hour: Connect Anything in Minutes | Hands-On Lab |
+| 1:45 – 2:20 PM | **Lab 3** — Deploy & Observe: Foundry Agent Service + Tracing | Hands-On Lab |
+| 2:20 – 2:55 PM | **Lab 4** — Ship It: Eval Gate + Iterate to Production | Hands-On Lab |
+| 2:55 – 3:05 PM | **Wrap-Up** — Live Agents in the Room | Discussion & Demo |
+
+> **Morning** = presentations + demos. **Afternoon** = 4 hands-on labs back-to-back.
+> Pre-workshop setup (below) is required so the afternoon starts at minute one.
+
+---
+
 ## 📋 Pre-Workshop Student Guide
 
 Welcome! This guide will get you fully prepared **before** you arrive at the workshop. Please complete **all** setup steps ahead of time — the labs are 100% hands-on and we hit the ground running from minute one.
