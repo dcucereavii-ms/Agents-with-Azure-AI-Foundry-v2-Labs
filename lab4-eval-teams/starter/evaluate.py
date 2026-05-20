@@ -58,7 +58,7 @@ DATASET_PATH = Path(__file__).parent / "datasets" / "eval_cases.jsonl"
 def make_agent_target(endpoint: str, agent_name: str, agent_version: str):
     """Return a sync callable that azure-ai-evaluation will invoke per dataset row."""
 
-    def target(query: str, context: str = "", **_) -> dict:
+    def target(query: str, context: str = "") -> dict:
         # TODO 1: build a prompt that combines `context` and `query`, then
         # invoke a MAF `FoundryAgent` (project_endpoint=endpoint,
         # agent_name=agent_name, agent_version=agent_version) via

@@ -102,7 +102,7 @@ def make_agent_target(endpoint: str, agent_name: str, agent_version: str):
             except Exception:
                 pass
 
-    def target(query: str, context: str = "", **_) -> dict:
+    def target(query: str, context: str = "") -> dict:
         prompt = f"Context:\n{context}\n\nQuestion: {query}" if context else query
         try:
             text = asyncio.run(_run_one(prompt))
