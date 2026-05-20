@@ -6,6 +6,13 @@ Entry point: orchestrates Researcher -> Writer via MAF's SequentialBuilder.
 
 import asyncio
 import os
+import warnings
+
+# MAF 1.5 surfaces ExperimentalWarning for MemoryStore / SkillResource the
+# first time agent_framework is imported. They're informational and noisy
+# in a workshop console; silence them up front.
+warnings.filterwarnings("ignore", message=r".*is experimental.*")
+
 from dotenv import load_dotenv
 from rich.console import Console
 from rich.panel import Panel
