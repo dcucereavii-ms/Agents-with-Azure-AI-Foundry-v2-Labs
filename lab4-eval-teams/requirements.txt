@@ -2,3 +2,5 @@
 -r ../shared/requirements.txt
 # 1.0.0b6 was yanked from PyPI; use the stable line (1.0.0+).
 azure-ai-evaluation>=1.0.0,<2.0
+# Lab 4 still polls runs via the classic Agents SDK (RunStatus enum).
+azure-ai-agents>=1.0.0,<2.0
