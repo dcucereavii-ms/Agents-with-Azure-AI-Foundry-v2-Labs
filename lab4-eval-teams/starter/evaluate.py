@@ -93,6 +93,8 @@ def run_evaluation(
 
     # TODO 2: call evaluate(...) with data=DATASET_PATH and
     # target=make_agent_target(endpoint, agent_name, agent_version).
+    # Tip: pass azure_ai_project=endpoint so the run shows up in the
+    # Foundry portal -> Evaluations tab.
     raise NotImplementedError("TODO 2: call evaluate() with the live target")
 
 

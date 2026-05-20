@@ -143,6 +143,8 @@ def run_evaluation(
         target=make_agent_target(endpoint, agent_name, agent_version),
         evaluators=evaluators,
         output_path=output_path,
+        # Upload the run to Foundry portal -> Evaluations.
+        azure_ai_project=endpoint,
     )
 
 
