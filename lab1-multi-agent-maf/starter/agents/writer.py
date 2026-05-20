@@ -1,8 +1,4 @@
-"""WriterAgent -- Foundry v2 starter for Lab 1.
-
-TODO: implement `create_writer_agent` so it returns (agent_name, agent_version).
-No external tools needed -- pure LLM.
-"""
+"""WriterAgent -- Foundry v2 solution for Lab 1."""
 
 import os
 from azure.ai.projects import AIProjectClient
@@ -17,10 +13,25 @@ Your output should include:
 - Key findings (bullet points)
 - Detailed analysis (3-4 paragraphs)
 - Implications and recommendations
-- A brief conclusion"""
+- A brief conclusion
+
+Write in a professional tone suitable for a technical audience.
+Do NOT include source citations -- focus on synthesis and clarity."""
 
 
 def create_writer_agent(client: AIProjectClient) -> tuple[str, str]:
-    """Create a Foundry v2 Writer agent (no tools). Returns (name, version)."""
-    # TODO: call client.agents.create_version(...) with a PromptAgentDefinition.
-    raise NotImplementedError("Implement create_writer_agent for Lab 1")
+    """
+    Create a Writer agent in Microsoft Foundry (v2) -- no external tools, pure LLM.
+
+    Returns:
+        Tuple of (agent_name, agent_version).
+    """
+    agent = client.agents.create_version(
+        agent_name="WriterAgent",
+        description="Technical writer that turns research into reports (Lab 1).",
+        definition=PromptAgentDefinition(
+            model=os.environ.get("MODEL_DEPLOYMENT", "gpt-4o"),
+            instructions=WRITER_INSTRUCTIONS,
+        ),
+    )
+    return agent.name, agent.version

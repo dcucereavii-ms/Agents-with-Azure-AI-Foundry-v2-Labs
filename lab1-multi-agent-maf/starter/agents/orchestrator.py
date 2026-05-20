@@ -1,33 +1,37 @@
-"""Orchestrator -- Foundry v2 + Microsoft Agent Framework (MAF) starter for Lab 1.
+"""Orchestrator -- Foundry v2 + Microsoft Agent Framework (MAF) solution for Lab 1.
 
-You will:
-  1. Provision two Foundry v2 agents (already done for you in researcher.py /
-     writer.py via create_version) so they appear in the Foundry portal.
-  2. Wrap each one with MAF's `FoundryAgent`.
-  3. Compose them with `SequentialBuilder` so the shared conversation flows
-     researcher -> writer with zero glue code.
+We provision two Foundry v2 agents (ResearcherAgent + WriterAgent) using the
+azure-ai-projects SDK -- this is what makes them appear in the NEW Foundry
+portal under "Agents". We then wrap each hosted agent with MAF's `FoundryAgent`
+and compose them with `SequentialBuilder` so the shared conversation context
+flows from researcher -> writer automatically.
+
+Why MAF on top of Foundry v2?
+  - Same hosted agents, but now driven by MAF orchestration primitives
+    (SequentialBuilder, ConcurrentBuilder, Handoff, Magentic, group chat ...).
+  - Built-in middleware + OpenTelemetry instrumentation (on by default in MAF 1.5+).
+  - Conversation history is managed for you between participants.
 """
 
 import os
-from typing import cast
 
 from azure.ai.projects import AIProjectClient
 from azure.identity import DefaultAzureCredential
 
-from agent_framework import Message
 from agent_framework.foundry import FoundryAgent
 from agent_framework.orchestrations import SequentialBuilder
 
 from agents.researcher import create_researcher_agent
 from agents.writer import create_writer_agent
-from utils.helpers import cleanup_agents  # noqa: F401
+from utils.helpers import cleanup_agents  # noqa: F401  (kept for the optional cleanup hook)
 
 
 async def run_pipeline(topic: str) -> str:
-    """Run Researcher -> Writer over the given topic using MAF orchestration."""
+    """Run the Researcher -> Writer MAF pipeline for the given topic."""
     endpoint = os.environ["AIPROJECT_ENDPOINT"]
     credential = DefaultAzureCredential()
 
+    # 1) Provision hosted agents in Foundry (they show up in the portal).
     project_client = AIProjectClient(endpoint=endpoint, credential=credential)
     researcher_ref = None  # (name, version)
     writer_ref = None
@@ -38,35 +42,45 @@ async def run_pipeline(topic: str) -> str:
         researcher_ref = create_researcher_agent(project_client)
         writer_ref = create_writer_agent(project_client)
 
-        # TODO 1: wrap each hosted agent with MAF's FoundryAgent. Pass
-        #         project_endpoint=endpoint, credential=credential, the
-        #         agent_name + agent_version from the tuples above, and a
-        #         friendly name= ("researcher" / "writer").
-        researcher = ...  # replace with FoundryAgent(...)
-        writer = ...      # replace with FoundryAgent(...)
+        # 2) Wrap each as a MAF FoundryAgent.
+        researcher = FoundryAgent(
+            project_endpoint=endpoint,
+            agent_name=researcher_ref[0],
+            agent_version=researcher_ref[1],
+            credential=credential,
+            name="researcher",
+        )
+        writer = FoundryAgent(
+            project_endpoint=endpoint,
+            agent_name=writer_ref[0],
+            agent_version=writer_ref[1],
+            credential=credential,
+            name="writer",
+        )
 
-        # TODO 2: build a sequential workflow with SequentialBuilder.
-        workflow = ...    # replace with SequentialBuilder(participants=[...]).build()
+        # 3) Sequential MAF workflow: researcher -> writer over a shared conversation.
+        # Wrapping with `.as_agent()` exposes the workflow as a single MAF agent
+        # whose `.run()` returns the writer's final response as plain text
+        # (the default Sequential contract emits the last participant's output).
+        workflow_agent = SequentialBuilder(participants=[researcher, writer]).build().as_agent()
 
-        # TODO 3: iterate workflow.run(prompt, stream=True) and capture the
-        #         final list[Message] from event.type == "output".
-        final_conversation: list[Message] = []
-        # async for event in workflow.run(...):
-        #     ...
-
-        # Pick the last assistant message (the writer's output).
-        for msg in reversed(final_conversation):
-            if msg.role == "assistant" and msg.text:
-                return msg.text
-        return "(no output produced)"
+        response = await workflow_agent.run(
+            f"Research and then write a comprehensive report on: {topic}",
+        )
+        return response.text or "(no output produced)"
 
     finally:
+        # Close MAF agents (closes their underlying async project client).
         for agent in (researcher, writer):
             if agent is not None:
                 try:
                     await agent.client.close()  # type: ignore[attr-defined]
                 except Exception:
                     pass
-        # Agents left in project for the workshop. Uncomment to clean up.
+
+        # Agents intentionally LEFT in the project so attendees can browse them
+        # in the Foundry portal -> Agents tab during the workshop.
+        #
+        # >>> AFTER LAB COMPLETION: uncomment to clean up. <<<
         # cleanup_agents(project_client, researcher_ref, writer_ref)
         pass

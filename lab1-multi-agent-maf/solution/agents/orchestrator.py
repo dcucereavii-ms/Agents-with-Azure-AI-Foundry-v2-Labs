@@ -14,12 +14,10 @@ Why MAF on top of Foundry v2?
 """
 
 import os
-from typing import cast
 
 from azure.ai.projects import AIProjectClient
 from azure.identity import DefaultAzureCredential
 
-from agent_framework import Message
 from agent_framework.foundry import FoundryAgent
 from agent_framework.orchestrations import SequentialBuilder
 
@@ -61,21 +59,15 @@ async def run_pipeline(topic: str) -> str:
         )
 
         # 3) Sequential MAF workflow: researcher -> writer over a shared conversation.
-        workflow = SequentialBuilder(participants=[researcher, writer]).build()
+        # Wrapping with `.as_agent()` exposes the workflow as a single MAF agent
+        # whose `.run()` returns the writer's final response as plain text
+        # (the default Sequential contract emits the last participant's output).
+        workflow_agent = SequentialBuilder(participants=[researcher, writer]).build().as_agent()
 
-        final_conversation: list[Message] = []
-        async for event in workflow.run(
+        response = await workflow_agent.run(
             f"Research and then write a comprehensive report on: {topic}",
-            stream=True,
-        ):
-            if event.type == "output":
-                final_conversation = cast(list[Message], event.data)
-
-        # 4) The writer's final assistant message is the report.
-        for msg in reversed(final_conversation):
-            if msg.role == "assistant" and msg.text:
-                return msg.text
-        return "(no output produced)"
+        )
+        return response.text or "(no output produced)"
 
     finally:
         # Close MAF agents (closes their underlying async project client).
