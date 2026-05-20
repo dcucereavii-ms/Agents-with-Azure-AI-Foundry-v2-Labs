@@ -238,6 +238,11 @@ def main():
     )
     parser.add_argument("--promote", action="store_true",
                         help="If the strong variant passes, run promote.py against it.")
+    parser.add_argument("--cleanup", action="store_true",
+                        help="Delete the agent versions after evaluating. "
+                             "Default: KEEP them so you can browse them in the "
+                             "Foundry portal -> Agents tab and follow the "
+                             "eval link from Evaluations.")
     args = parser.parse_args()
 
     endpoint = os.environ["AIPROJECT_ENDPOINT"]
@@ -280,12 +285,21 @@ def main():
             console.print("\n[bold red]Quality gate FAILED. Not promoting.[/bold red]")
 
     finally:
-        # Clean up any agent versions we created so the project doesn't accumulate them.
-        for name, version in created_agents:
-            try:
-                client.agents.delete_version(agent_name=name, agent_version=version)
-            except Exception as e:
-                console.print(f"[yellow]Could not delete {name} v{version}: {e}[/yellow]")
+        if args.cleanup:
+            for name, version in created_agents:
+                try:
+                    client.agents.delete_version(agent_name=name, agent_version=version)
+                    console.print(f"[dim]Deleted {name} v{version}[/dim]")
+                except Exception as e:
+                    console.print(f"[yellow]Could not delete {name} v{version}: {e}[/yellow]")
+        elif created_agents:
+            console.print(
+                "\n[dim]Agent versions left in the project so you can browse them "
+                "in the Foundry portal -> Agents tab:[/dim]"
+            )
+            for name, version in created_agents:
+                console.print(f"  [dim]- {name} v{version}[/dim]")
+            console.print("[dim]Re-run with --cleanup to remove them.[/dim]")
 
     return 0 if final_passed else 1
 
