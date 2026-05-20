@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """
-Lab 4 — Production Promotion (complete solution).
+Lab 4 -- Production Promotion (Foundry v2 solution).
 
 Replaces the old "deploy to Teams" step. In Foundry v2 the realistic
 promotion artifact is metadata + a Playground URL, not a Teams app package.
 
 Steps:
-  1. Look up the agent.
-  2. Stamp it with version + eval-pass metadata.
-  3. Print the Foundry Playground URL so the team can hit it immediately.
+  1. Look up the agent VERSION by (name, version).
+  2. Best-effort stamp it with promotion metadata.
+  3. Print the Foundry portal Agents URL so the team can hit it immediately.
 """
 
 import argparse
@@ -26,53 +26,73 @@ load_dotenv()
 console = Console()
 
 
-def build_playground_url(project_endpoint: str, agent_id: str) -> str:
-    """Construct the Foundry Playground URL for the agent.
-
-    Foundry exposes per-agent playgrounds at:
-        https://ai.azure.com/build/agents/{agent_id}/playground?wsid=<resource-id>
-    The wsid is derived from the project endpoint host; we surface the
-    deep link with what we have and let the user paste it.
-    """
-    return f"https://ai.azure.com/build/agents/{quote(agent_id)}/playground"
+def build_portal_url(agent_name: str, agent_version: str) -> str:
+    """Construct the Foundry portal URL for the agent version."""
+    return (
+        "https://ai.azure.com/build/agents/"
+        f"{quote(agent_name)}/versions/{quote(str(agent_version))}"
+    )
 
 
-def promote(agent_id: str, version: str) -> None:
+def promote(agent_name: str, agent_version: str, tag: str) -> None:
     client = AIProjectClient(
         endpoint=os.environ["AIPROJECT_ENDPOINT"],
         credential=DefaultAzureCredential(),
     )
 
-    agent = client.agents.get_agent(agent_id)
-    console.print(f"Found agent: [cyan]{agent.name}[/cyan] ({agent_id})")
+    # Best-effort lookup: the v2 SDK exposes get_version on AgentsOperations.
+    try:
+        agent = client.agents.get_version(agent_name=agent_name, agent_version=agent_version)
+        console.print(
+            f"Found agent: [cyan]{agent.name}[/cyan] (v{agent.version})"
+        )
+    except Exception as e:
+        console.print(f"[yellow]Could not fetch agent version: {e}[/yellow]")
 
-    metadata = dict(getattr(agent, "metadata", None) or {})
-    metadata.update({
+    metadata = {
         "promoted":         "true",
-        "promoted_version": version,
+        "promoted_version": tag,
         "promoted_at":      datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "promoted_by":      os.environ.get("USERNAME") or os.environ.get("USER") or "unknown",
         "eval_status":      "passed",
-    })
+    }
 
-    client.agents.update_agent(agent_id=agent_id, metadata=metadata)
-    console.print("[green]✓[/green] Agent metadata stamped:")
-    for k, v in metadata.items():
-        console.print(f"   [dim]{k}[/dim] = {v}")
+    # Metadata stamping is best-effort: SDK shape across azure-ai-projects
+    # releases varies (update_version may not accept metadata directly).
+    stamped = False
+    try:
+        client.agents.update_version(
+            agent_name=agent_name,
+            agent_version=agent_version,
+            metadata=metadata,
+        )
+        stamped = True
+    except Exception as e:
+        console.print(f"[yellow]Skipping metadata stamp (not supported by SDK): {e}[/yellow]")
 
-    url = build_playground_url(os.environ["AIPROJECT_ENDPOINT"], agent_id)
-    console.print(f"\n[bold]Playground URL:[/bold] [link={url}]{url}[/link]")
-    console.print("\n[dim]Share this URL with your team. They can interact with the promoted agent immediately.[/dim]")
+    if stamped:
+        console.print("[green]OK[/green] Agent metadata stamped:")
+        for k, v in metadata.items():
+            console.print(f"   [dim]{k}[/dim] = {v}")
+
+    url = build_portal_url(agent_name, agent_version)
+    console.print(f"\n[bold]Portal URL:[/bold] [link={url}]{url}[/link]")
+    console.print(
+        "\n[dim]Share this URL with your team. They can interact with the "
+        "promoted agent immediately.[/dim]"
+    )
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--agent-id", required=True, help="Agent ID to promote.")
-    parser.add_argument("--version", default="v2-strong", help="Version tag for metadata.")
+    parser.add_argument("--agent-name", required=True, help="Agent name to promote.")
+    parser.add_argument("--agent-version", required=True, help="Agent version to promote.")
+    parser.add_argument("--version", default="v2-strong",
+                        help="Promotion tag stored in metadata.")
     args = parser.parse_args()
 
     try:
-        promote(args.agent_id, args.version)
+        promote(args.agent_name, args.agent_version, args.version)
         return 0
     except Exception as e:
         console.print(f"[red]Promotion failed:[/red] {e}")

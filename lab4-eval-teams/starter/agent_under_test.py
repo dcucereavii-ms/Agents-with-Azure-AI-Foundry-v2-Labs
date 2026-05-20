@@ -12,6 +12,7 @@ You run the *same* eval suite against both and compare scores.
 
 import os
 from azure.ai.projects import AIProjectClient
+from azure.ai.projects.models import PromptAgentDefinition
 
 WEAK_INSTRUCTIONS = """You are a helpful assistant. Answer questions briefly."""
 
@@ -25,21 +26,24 @@ Rules:
 """
 
 
-def create_agent(client: AIProjectClient, name: str, instructions: str) -> str:
-    """Create an agent and return its ID."""
-    agent = client.agents.create_agent(
-        model=os.environ.get("MODEL_DEPLOYMENT", "gpt-4o"),
-        name=name,
-        instructions=instructions,
+def create_agent(client: AIProjectClient, name: str, instructions: str) -> tuple[str, str]:
+    """Create an agent VERSION in Foundry v2 and return (name, version)."""
+    agent = client.agents.create_version(
+        agent_name=name,
+        description=f"Lab 4 eval target: {name}",
+        definition=PromptAgentDefinition(
+            model=os.environ.get("MODEL_DEPLOYMENT", "gpt-4o"),
+            instructions=instructions,
+        ),
     )
-    return agent.id
+    return agent.name, agent.version
 
 
-def create_weak_agent(client: AIProjectClient) -> str:
-    """v1: deliberately under-specified — should fail the groundedness bar."""
+def create_weak_agent(client: AIProjectClient) -> tuple[str, str]:
+    """v1: deliberately under-specified -- should fail the groundedness bar."""
     return create_agent(client, "EvalAgent-v1-weak", WEAK_INSTRUCTIONS)
 
 
-def create_strong_agent(client: AIProjectClient) -> str:
-    """v2: grounded + citation-required — should pass the eval gate."""
+def create_strong_agent(client: AIProjectClient) -> tuple[str, str]:
+    """v2: grounded + citation-required -- should pass the eval gate."""
     return create_agent(client, "EvalAgent-v2-strong", STRONG_INSTRUCTIONS)

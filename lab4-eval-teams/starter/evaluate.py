@@ -15,14 +15,19 @@ When the strong variant passes the gate, run promote.py to tag the agent.
 """
 
 import argparse
+import asyncio
 import json
 import os
 import sys
+import warnings
 from pathlib import Path
+
+# MAF 1.5 surfaces ExperimentalWarning for MemoryStore / SkillResource the
+# first time agent_framework is imported. Silence them up front.
+warnings.filterwarnings("ignore", message=r".*is experimental.*")
 
 from dotenv import load_dotenv
 from azure.ai.projects import AIProjectClient
-from azure.ai.agents.models import RunStatus
 from azure.identity import DefaultAzureCredential
 from azure.ai.evaluation import (
     AzureOpenAIModelConfiguration,
@@ -33,6 +38,8 @@ from azure.ai.evaluation import (
 )
 from rich.console import Console
 from rich.table import Table
+
+from agent_framework.foundry import FoundryAgent
 
 from agent_under_test import create_weak_agent, create_strong_agent
 
@@ -48,18 +55,26 @@ EVAL_THRESHOLDS = {
 DATASET_PATH = Path(__file__).parent / "datasets" / "eval_cases.jsonl"
 
 
-def make_agent_target(client: AIProjectClient, agent_id: str):
-    """Return a callable that azure-ai-evaluation will invoke per dataset row."""
+def make_agent_target(endpoint: str, agent_name: str, agent_version: str):
+    """Return a sync callable that azure-ai-evaluation will invoke per dataset row."""
 
     def target(query: str, context: str = "", **_) -> dict:
-        # TODO 1: create a thread, post a user message that includes the context
-        # and the query, run the agent, and return {"response": <assistant text>}.
+        # TODO 1: build a prompt that combines `context` and `query`, then
+        # invoke a MAF `FoundryAgent` (project_endpoint=endpoint,
+        # agent_name=agent_name, agent_version=agent_version) via
+        # `asyncio.run(agent.run(prompt))` and return
+        # {"response": response.text}.
         raise NotImplementedError("TODO 1: implement the live agent target")
 
     return target
 
 
-def run_evaluation(client: AIProjectClient, agent_id: str, output_path: str) -> dict:
+def run_evaluation(
+    endpoint: str,
+    agent_name: str,
+    agent_version: str,
+    output_path: str,
+) -> dict:
     # Judge LLM is reached via Microsoft Entra ID (AAD) -- no keys required.
     # The evaluators will use DefaultAzureCredential (same as `az login`) when
     # api_key is omitted from the model_config.
@@ -76,7 +91,8 @@ def run_evaluation(client: AIProjectClient, agent_id: str, output_path: str) -> 
         # TODO 4 (bonus): add a deterministic CitationPresentEvaluator here.
     }
 
-    # TODO 2: call evaluate(...) with data=DATASET_PATH and target=make_agent_target(...).
+    # TODO 2: call evaluate(...) with data=DATASET_PATH and
+    # target=make_agent_target(endpoint, agent_name, agent_version).
     raise NotImplementedError("TODO 2: call evaluate() with the live target")
 
 
@@ -111,19 +127,23 @@ def eval_gate(results: dict) -> bool:
     return all_pass
 
 
-def evaluate_variant(client: AIProjectClient, variant: str) -> tuple[bool, str]:
+def evaluate_variant(
+    client: AIProjectClient,
+    endpoint: str,
+    variant: str,
+) -> tuple[bool, tuple[str, str]]:
     if variant == "weak":
         console.rule("[bold yellow]v1 — weak instructions")
-        agent_id = create_weak_agent(client)
+        agent_name, agent_version = create_weak_agent(client)
         out = "eval_results_v1.json"
     else:
         console.rule("[bold green]v2 — strong instructions")
-        agent_id = create_strong_agent(client)
+        agent_name, agent_version = create_strong_agent(client)
         out = "eval_results_v2.json"
 
-    console.print(f"Agent: [cyan]{agent_id}[/cyan]")
-    results = run_evaluation(client, agent_id, out)
-    return eval_gate(results), agent_id
+    console.print(f"Agent: [cyan]{agent_name}[/cyan] (v{agent_version})")
+    results = run_evaluation(endpoint, agent_name, agent_version, out)
+    return eval_gate(results), (agent_name, agent_version)
 
 
 def main():
@@ -132,41 +152,47 @@ def main():
     parser.add_argument("--promote", action="store_true")
     args = parser.parse_args()
 
+    endpoint = os.environ["AIPROJECT_ENDPOINT"]
     client = AIProjectClient(
-        endpoint=os.environ["AIPROJECT_ENDPOINT"],
+        endpoint=endpoint,
         credential=DefaultAzureCredential(),
     )
 
-    created_agents: list[str] = []
+    created_agents: list[tuple[str, str]] = []
     final_passed = False
-    final_agent_id: str | None = None
+    final_agent: tuple[str, str] | None = None
     try:
         if args.variant in ("weak", "both"):
-            passed, agent_id = evaluate_variant(client, "weak")
-            created_agents.append(agent_id)
+            passed, agent_ref = evaluate_variant(client, endpoint, "weak")
+            created_agents.append(agent_ref)
 
         if args.variant in ("strong", "both"):
-            passed, agent_id = evaluate_variant(client, "strong")
-            created_agents.append(agent_id)
+            passed, agent_ref = evaluate_variant(client, endpoint, "strong")
+            created_agents.append(agent_ref)
             final_passed = passed
-            final_agent_id = agent_id
+            final_agent = agent_ref
 
         if final_passed:
             console.print("\n[bold green]Quality gate PASSED.[/bold green]")
-            if args.promote and final_agent_id:
+            if args.promote and final_agent is not None:
                 import subprocess
+                name, version = final_agent
                 subprocess.run(
-                    [sys.executable, "promote.py", "--agent-id", final_agent_id],
+                    [
+                        sys.executable, "promote.py",
+                        "--agent-name", name,
+                        "--agent-version", version,
+                    ],
                     check=True,
                 )
         else:
             console.print("\n[bold red]Quality gate FAILED.[/bold red]")
     finally:
-        for aid in created_agents:
+        for name, version in created_agents:
             try:
-                client.agents.delete_agent(aid)
+                client.agents.delete_version(agent_name=name, agent_version=version)
             except Exception as e:
-                console.print(f"[yellow]Could not delete agent {aid[:8]}: {e}[/yellow]")
+                console.print(f"[yellow]Could not delete {name} v{version}: {e}[/yellow]")
 
     return 0 if final_passed else 1
 
