@@ -1,19 +1,30 @@
 #!/usr/bin/env python3
 """
-Lab 3 — Run Agent with Tracing: Complete Solution
-All TODOs filled in — tracing configured and custom spans added.
+Lab 3 -- Run Agent with Tracing (Foundry v2 + Microsoft Agent Framework solution).
+
+Creates an AnalysisAgent (Code Interpreter) in Foundry, wraps it with MAF's
+FoundryAgent, and runs analytic queries through it. MAF instrumentation is on
+by default, and `FoundryAgent.configure_azure_monitor()` pulls the App
+Insights connection string straight from the Foundry project -- no extra env
+vars needed.
+
+Traces show up in:
+  - Application Insights (Transaction Search / End-to-end transactions)
+  - Microsoft Foundry portal -> Observability -> Tracing
 """
 
+import asyncio
 import os
+
 from dotenv import load_dotenv
 from azure.ai.projects import AIProjectClient
-from azure.ai.agents.models import RunStatus
 from azure.identity import DefaultAzureCredential
-from opentelemetry import trace
 from rich.console import Console
 from rich.panel import Panel
 
-from tracing_config import configure_tracing, get_tracer
+from agent_framework.foundry import FoundryAgent
+
+from tracing_config import get_tracer
 from agent_setup import create_analysis_agent
 
 load_dotenv()
@@ -26,58 +37,58 @@ SAMPLE_QUERIES = [
 ]
 
 
-def run_with_tracing():
-    # Configure tracing FIRST — before any SDK calls
-    configure_tracing(enable_content_recording=True)
+async def run_with_tracing() -> None:
+    endpoint = os.environ["AIPROJECT_ENDPOINT"]
+    credential = DefaultAzureCredential()
 
+    # 1. Provision the hosted agent in Foundry (visible in the portal).
+    project_client = AIProjectClient(endpoint=endpoint, credential=credential)
+    agent_name, agent_version = create_analysis_agent(project_client)
+    console.print(f"[green]OK: Agent created: {agent_name} (v{agent_version})[/green]")
+
+    # 2. Wrap with MAF, then wire up Azure Monitor via the FoundryAgent helper.
+    analysis_agent = FoundryAgent(
+        project_endpoint=endpoint,
+        agent_name=agent_name,
+        agent_version=agent_version,
+        credential=credential,
+        name="analysis_agent",
+    )
+    await analysis_agent.configure_azure_monitor(enable_sensitive_data=True)
     tracer = get_tracer()
 
-    client = AIProjectClient(
-        endpoint=os.environ["AIPROJECT_ENDPOINT"],
-        credential=DefaultAzureCredential(),
-    )
-
-    agent_id = None
     try:
-        agent_id = create_analysis_agent(client)
-        console.print(f"[green]✅ Agent created: {agent_id}[/green]")
-
         for i, query in enumerate(SAMPLE_QUERIES, 1):
             console.print(f"\n[bold blue]Query {i}/{len(SAMPLE_QUERIES)}:[/bold blue] {query[:60]}...")
 
-            # Wrap each agent call in a custom span for grouping in the trace view
+            # Custom span groups all MAF / Foundry sub-spans under one logical "query-N".
             with tracer.start_as_current_span(f"query-{i}") as span:
                 span.set_attribute("query.text", query)
                 span.set_attribute("query.index", i)
-                span.set_attribute("agent.id", agent_id)
+                span.set_attribute("agent.name", agent_name)
+                span.set_attribute("agent.version", agent_version)
 
-                thread = client.agents.create_thread()
-                client.agents.create_message(thread_id=thread.id, role="user", content=query)
-                run = client.agents.create_and_process_run(
-                    thread_id=thread.id,
-                    agent_id=agent_id,
-                )
+                result = await analysis_agent.run(query)
+                text = result.text or "(no text output)"
+                span.set_attribute("response.length", len(text))
 
-                if run.status == RunStatus.COMPLETED:
-                    span.set_attribute("run.status", "completed")
-                    messages = client.agents.list_messages(thread_id=thread.id)
-                    for msg in messages.data:
-                        if msg.role == "assistant":
-                            response = msg.content[0].text.value if msg.content else ""
-                            console.print(Panel(response[:500] + "...", title=f"Response {i}"))
-                            break
-                else:
-                    span.set_attribute("run.status", str(run.status))
-                    console.print(f"[red]Run failed: {run.last_error}[/red]")
-
+                console.print(Panel(text[:500] + ("..." if len(text) > 500 else ""), title=f"Response {i}"))
     finally:
-        if agent_id:
-            client.agents.delete_agent(agent_id)
-            console.print("[dim]Agent cleaned up[/dim]")
+        try:
+            await analysis_agent.client.close()  # type: ignore[attr-defined]
+        except Exception:
+            pass
 
-    console.print("\n[bold green]✅ Done! Check the Azure AI Foundry portal → Tracing tab[/bold green]")
-    console.print(f"Project: {os.environ.get('AZURE_AI_PROJECT_NAME', 'your-project')}")
+        # Agent intentionally LEFT in the project so attendees can browse it.
+        #
+        # >>> AFTER LAB COMPLETION: uncomment to clean up. <<<
+        # project_client.agents.delete_version(agent_name=agent_name, agent_version=agent_version)
+        console.print(
+            f"[dim]Agent {agent_name} (v{agent_version}) left in project (visit Foundry portal -> Agents)[/dim]"
+        )
+
+    console.print("\n[bold green]OK: Done! Check the Azure AI Foundry portal -> Tracing tab[/bold green]")
 
 
 if __name__ == "__main__":
-    run_with_tracing()
+    asyncio.run(run_with_tracing())

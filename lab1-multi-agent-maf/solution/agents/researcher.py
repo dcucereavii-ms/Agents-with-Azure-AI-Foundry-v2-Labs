@@ -1,40 +1,41 @@
-"""ResearcherAgent — complete solution for Lab 1."""
+"""ResearcherAgent -- Foundry v2 solution for Lab 1."""
 
 import os
 from azure.ai.projects import AIProjectClient
-from azure.ai.agents.models import BingGroundingTool, ToolSet
+from azure.ai.projects.models import PromptAgentDefinition, CodeInterpreterTool
 
 
-RESEARCHER_INSTRUCTIONS = """You are a research specialist with web search capabilities.
-When given a topic, use your Bing search tool to find the latest, most relevant information.
-Return a well-structured summary with:
+RESEARCHER_INSTRUCTIONS = """You are a research specialist.
+When given a topic, draw on your training knowledge to produce a well-structured
+summary with:
 - Key facts and statistics
-- Recent developments (last 12 months preferred)
+- Recent developments and trends
 - Relevant context and background
-- Source citations where possible
-Be thorough but concise. Format your response in clear sections."""
+- Caveats where information may be outdated
+
+Use your code interpreter if you need to compute, transform, or structure data
+(e.g. building a comparison table). Be thorough but concise. Format your
+response in clear sections."""
 
 
-def create_researcher_agent(client: AIProjectClient) -> str:
+def create_researcher_agent(client: AIProjectClient) -> tuple[str, str]:
     """
-    Create a Researcher agent with Bing grounding.
+    Create a Researcher agent in Microsoft Foundry (v2) with a Code Interpreter tool.
 
-    Args:
-        client: An initialized AIProjectClient
+    Uses the new `create_version` + `PromptAgentDefinition` API, so the agent
+    shows up in the NEW Foundry portal's "Agents" page (not "Classic agents")
+    and emits rich traces under Observability -> Tracing.
 
     Returns:
-        The agent ID string
+        Tuple of (agent_name, agent_version) -- needed for invocation and cleanup.
     """
-    bing_connection = client.connections.get(os.environ["BING_CONNECTION_NAME"])
-    bing_tool = BingGroundingTool(connection_id=bing_connection.id)
-
-    toolset = ToolSet()
-    toolset.add(bing_tool)
-
-    agent = client.agents.create_agent(
-        model=os.environ.get("MODEL_DEPLOYMENT", "gpt-4o"),
-        name="ResearcherAgent",
-        instructions=RESEARCHER_INSTRUCTIONS,
-        toolset=toolset,
+    agent = client.agents.create_version(
+        agent_name="ResearcherAgent",
+        description="Research specialist with Code Interpreter (Lab 1).",
+        definition=PromptAgentDefinition(
+            model=os.environ.get("MODEL_DEPLOYMENT", "gpt-4o"),
+            instructions=RESEARCHER_INSTRUCTIONS,
+            tools=[CodeInterpreterTool()],
+        ),
     )
-    return agent.id
+    return agent.name, agent.version

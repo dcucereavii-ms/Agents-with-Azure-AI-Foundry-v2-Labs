@@ -1,36 +1,15 @@
 """
-Lab 3 — Tracing Configuration
-Sets up OpenTelemetry tracing with Azure Monitor exporter.
+Lab 3 -- Tracing Configuration (Foundry v2 + MAF starter).
 
-Your task: complete the configure_tracing() function.
+Microsoft Agent Framework enables OpenTelemetry instrumentation by default
+(1.5+). To send those spans to Application Insights, call
+`await foundry_agent.configure_azure_monitor()` from run_agent.py -- it grabs
+the App Insights connection string from the Foundry project itself.
+
+This helper just gives you a tracer for custom spans (e.g. one per query).
 """
 
-import os
-from azure.monitor.opentelemetry import configure_azure_monitor
 from opentelemetry import trace
-
-
-def configure_tracing(enable_content_recording: bool = True) -> None:
-    """
-    Configure OpenTelemetry with Azure Monitor exporter.
-
-    Args:
-        enable_content_recording: If True, captures prompt/response content in traces.
-                                   Set False for production (PII concerns).
-    """
-    connection_string = os.environ.get("APPLICATIONINSIGHTS_CONNECTION_STRING")
-    if not connection_string:
-        print("⚠️  APPLICATIONINSIGHTS_CONNECTION_STRING not set — traces will not be exported")
-        return
-
-    # TODO: Step 1 — Configure Azure Monitor exporter
-    # Call configure_azure_monitor(connection_string=connection_string)
-
-    # TODO: Step 2 — Enable Azure AI content recording
-    # Import AIAgentsInstrumentor from azure.ai.agents.telemetry
-    # Create an instance and call .instrument(enable_content_recording=enable_content_recording)
-
-    print(f"✅ Tracing configured (content recording: {enable_content_recording})")
 
 
 def get_tracer(name: str = "workshop-agent"):

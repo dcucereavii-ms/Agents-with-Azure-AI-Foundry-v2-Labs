@@ -1,64 +1,72 @@
-"""
-Orchestrator — coordinates ResearcherAgent and WriterAgent.
+"""Orchestrator -- Foundry v2 + Microsoft Agent Framework (MAF) starter for Lab 1.
 
-Your task: implement the run_pipeline() function that:
-1. Creates the AIProjectClient
-2. Calls the researcher to gather information
-3. Passes research results to the writer
-4. Returns the final formatted report
-5. Cleans up all agents and threads
+You will:
+  1. Provision two Foundry v2 agents (already done for you in researcher.py /
+     writer.py via create_version) so they appear in the Foundry portal.
+  2. Wrap each one with MAF's `FoundryAgent`.
+  3. Compose them with `SequentialBuilder` so the shared conversation flows
+     researcher -> writer with zero glue code.
 """
 
 import os
+from typing import cast
+
 from azure.ai.projects import AIProjectClient
 from azure.identity import DefaultAzureCredential
 
+from agent_framework import Message
+from agent_framework.foundry import FoundryAgent
+from agent_framework.orchestrations import SequentialBuilder
+
 from agents.researcher import create_researcher_agent
 from agents.writer import create_writer_agent
-from utils.helpers import run_agent_turn, cleanup_agents
+from utils.helpers import cleanup_agents  # noqa: F401
 
 
-def run_pipeline(topic: str) -> str:
-    """
-    Run the full research pipeline for the given topic.
+async def run_pipeline(topic: str) -> str:
+    """Run Researcher -> Writer over the given topic using MAF orchestration."""
+    endpoint = os.environ["AIPROJECT_ENDPOINT"]
+    credential = DefaultAzureCredential()
 
-    Args:
-        topic: The research topic to investigate
-
-    Returns:
-        The final formatted research report
-    """
-    # TODO: Step 1 — Initialize the AIProjectClient
-    # Hint: Use AIProjectClient(endpoint=..., credential=DefaultAzureCredential())
-    # The endpoint comes from os.environ["AIPROJECT_ENDPOINT"]
-    client = None  # replace this line
-
-    researcher_id = None
-    writer_id = None
+    project_client = AIProjectClient(endpoint=endpoint, credential=credential)
+    researcher_ref = None  # (name, version)
+    writer_ref = None
+    researcher = None
+    writer = None
 
     try:
-        # TODO: Step 2 — Create the researcher agent
-        # Call create_researcher_agent(client) and store the returned agent ID
-        # researcher_id = ...
+        researcher_ref = create_researcher_agent(project_client)
+        writer_ref = create_writer_agent(project_client)
 
-        # TODO: Step 3 — Run the researcher with the topic
-        # Use run_agent_turn(client, researcher_id, f"Research this topic thoroughly: {topic}")
-        # research_results = ...
-        research_results = ""  # replace this line
+        # TODO 1: wrap each hosted agent with MAF's FoundryAgent. Pass
+        #         project_endpoint=endpoint, credential=credential, the
+        #         agent_name + agent_version from the tuples above, and a
+        #         friendly name= ("researcher" / "writer").
+        researcher = ...  # replace with FoundryAgent(...)
+        writer = ...      # replace with FoundryAgent(...)
 
-        # TODO: Step 4 — Create the writer agent
-        # Call create_writer_agent(client) and store the returned agent ID
-        # writer_id = ...
+        # TODO 2: build a sequential workflow with SequentialBuilder.
+        workflow = ...    # replace with SequentialBuilder(participants=[...]).build()
 
-        # TODO: Step 5 — Pass research results to the writer
-        # Use run_agent_turn(client, writer_id, f"Write a comprehensive report based on:\n\n{research_results}")
-        # final_report = ...
-        final_report = "Not implemented yet"  # replace this line
+        # TODO 3: iterate workflow.run(prompt, stream=True) and capture the
+        #         final list[Message] from event.type == "output".
+        final_conversation: list[Message] = []
+        # async for event in workflow.run(...):
+        #     ...
 
-        return final_report
+        # Pick the last assistant message (the writer's output).
+        for msg in reversed(final_conversation):
+            if msg.role == "assistant" and msg.text:
+                return msg.text
+        return "(no output produced)"
 
     finally:
-        # TODO: Step 6 — Clean up agents (always runs, even on error)
-        # Call cleanup_agents(client, researcher_id, writer_id)
-        # Hint: check for None before cleaning up
+        for agent in (researcher, writer):
+            if agent is not None:
+                try:
+                    await agent.client.close()  # type: ignore[attr-defined]
+                except Exception:
+                    pass
+        # Agents left in project for the workshop. Uncomment to clean up.
+        # cleanup_agents(project_client, researcher_ref, writer_ref)
         pass

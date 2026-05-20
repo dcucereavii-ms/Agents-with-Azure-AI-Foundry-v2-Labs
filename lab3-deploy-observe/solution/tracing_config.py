@@ -1,35 +1,22 @@
 """
-Lab 3 — Tracing Configuration: Complete Solution
+Lab 3 -- Tracing Configuration (Foundry v2 + Microsoft Agent Framework solution).
+
+Microsoft Agent Framework enables OpenTelemetry instrumentation by default
+(as of 1.5+), so we don't need to call AIProjectInstrumentor() ourselves.
+We just need to:
+
+  1. Make sure MAF instrumentation isn't disabled.
+  2. Point the OTel exporter at Application Insights.
+
+The cleanest way is to call `await foundry_agent.configure_azure_monitor()`
+from run_agent.py -- it grabs the connection string from the Foundry project
+itself (no env var required) and wires up Azure Monitor. The helper below is
+just a thin wrapper around `opentelemetry.trace.get_tracer` for custom spans.
 """
 
-import os
-from azure.monitor.opentelemetry import configure_azure_monitor
-from azure.ai.agents.telemetry import AIAgentsInstrumentor
 from opentelemetry import trace
 
 
-def configure_tracing(enable_content_recording: bool = True) -> None:
-    """
-    Configure OpenTelemetry with Azure Monitor exporter.
-
-    Args:
-        enable_content_recording: If True, captures prompt/response content in traces.
-                                   Set False for production (PII concerns).
-    """
-    connection_string = os.environ.get("APPLICATIONINSIGHTS_CONNECTION_STRING")
-    if not connection_string:
-        print("⚠️  APPLICATIONINSIGHTS_CONNECTION_STRING not set — traces will not be exported")
-        return
-
-    # Configure Azure Monitor as the OTLP exporter
-    configure_azure_monitor(connection_string=connection_string)
-
-    # Instrument the Azure AI Agents SDK to auto-emit spans
-    AIAgentsInstrumentor().instrument(enable_content_recording=enable_content_recording)
-
-    print(f"✅ Tracing configured (content recording: {enable_content_recording})")
-
-
 def get_tracer(name: str = "workshop-agent"):
-    """Get a tracer for custom spans. Pre-built."""
+    """Get a tracer for custom spans (e.g. one per query in run_agent.py)."""
     return trace.get_tracer(name)

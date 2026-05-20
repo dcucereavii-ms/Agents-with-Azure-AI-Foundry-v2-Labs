@@ -1,57 +1,29 @@
-"""
-ResearcherAgent — uses Bing grounding to search the web and summarize findings.
+"""ResearcherAgent -- Foundry v2 starter for Lab 1.
 
-Your task: implement create_researcher_agent() that:
-1. Retrieves the Bing connection from the project
-2. Configures a BingGroundingTool
-3. Creates an agent with appropriate instructions
-4. Returns the agent ID
+TODO: implement `create_researcher_agent` so it returns (agent_name, agent_version).
+Hint: use `client.agents.create_version(...)` with `PromptAgentDefinition` and
+a `CodeInterpreterTool()` in the `tools` list.
 """
 
 import os
 from azure.ai.projects import AIProjectClient
-from azure.ai.agents.models import BingGroundingTool, ToolSet
+from azure.ai.projects.models import PromptAgentDefinition, CodeInterpreterTool
 
 
-RESEARCHER_INSTRUCTIONS = """You are a research specialist with web search capabilities.
-When given a topic, use your Bing search tool to find the latest, most relevant information.
-Return a well-structured summary with:
+RESEARCHER_INSTRUCTIONS = """You are a research specialist.
+When given a topic, draw on your training knowledge to produce a well-structured
+summary with:
 - Key facts and statistics
-- Recent developments (last 12 months preferred)
+- Recent developments and trends
 - Relevant context and background
-- Source citations where possible
-Be thorough but concise. Format your response in clear sections."""
+- Caveats where information may be outdated
+
+Use your code interpreter if you need to compute, transform, or structure data
+(e.g. building a comparison table). Be thorough but concise."""
 
 
-def create_researcher_agent(client: AIProjectClient) -> str:
-    """
-    Create a Researcher agent with Bing grounding.
-
-    Args:
-        client: An initialized AIProjectClient
-
-    Returns:
-        The agent ID string
-    """
-    # TODO: Step 1 — Get the Bing connection from the project
-    # Use client.connections.get(os.environ["BING_CONNECTION_NAME"])
-    # bing_connection = ...
-
-    # TODO: Step 2 — Create a BingGroundingTool with the connection ID
-    # bing_tool = BingGroundingTool(connection_id=bing_connection.id)
-
-    # TODO: Step 3 — Create a ToolSet and add the Bing tool
-    # toolset = ToolSet()
-    # toolset.add(bing_tool)
-
-    # TODO: Step 4 — Create the agent
-    # Use client.agents.create_agent(
-    #     model=os.environ.get("MODEL_DEPLOYMENT", "gpt-4o"),
-    #     name="ResearcherAgent",
-    #     instructions=RESEARCHER_INSTRUCTIONS,
-    #     toolset=toolset,
-    # )
-    # agent = ...
-
-    # TODO: Step 5 — Return agent.id
-    raise NotImplementedError("Implement create_researcher_agent()")
+def create_researcher_agent(client: AIProjectClient) -> tuple[str, str]:
+    """Create a Foundry v2 Researcher agent. Returns (agent_name, agent_version)."""
+    # TODO: call client.agents.create_version(...) with a PromptAgentDefinition
+    #       that includes CodeInterpreterTool().
+    raise NotImplementedError("Implement create_researcher_agent for Lab 1")

@@ -1,12 +1,12 @@
-"""
-WriterAgent — synthesizes research findings into a polished report.
+"""WriterAgent -- Foundry v2 starter for Lab 1.
 
-Your task: implement create_writer_agent() that creates an agent
-with no external tools (pure language model), optimized for writing.
+TODO: implement `create_writer_agent` so it returns (agent_name, agent_version).
+No external tools needed -- pure LLM.
 """
 
 import os
 from azure.ai.projects import AIProjectClient
+from azure.ai.projects.models import PromptAgentDefinition
 
 
 WRITER_INSTRUCTIONS = """You are an expert technical writer. You receive research summaries
@@ -17,27 +17,10 @@ Your output should include:
 - Key findings (bullet points)
 - Detailed analysis (3-4 paragraphs)
 - Implications and recommendations
-- A brief conclusion
-
-Write in a professional tone suitable for a technical audience.
-Do NOT include source citations — focus on synthesis and clarity."""
+- A brief conclusion"""
 
 
-def create_writer_agent(client: AIProjectClient) -> str:
-    """
-    Create a Writer agent (no external tools, pure LLM).
-
-    Args:
-        client: An initialized AIProjectClient
-
-    Returns:
-        The agent ID string
-    """
-    # TODO: Create the agent using client.agents.create_agent()
-    # Parameters:
-    #   model: os.environ.get("MODEL_DEPLOYMENT", "gpt-4o")
-    #   name: "WriterAgent"
-    #   instructions: WRITER_INSTRUCTIONS
-    # No toolset needed for this agent!
-    # Return agent.id
-    raise NotImplementedError("Implement create_writer_agent()")
+def create_writer_agent(client: AIProjectClient) -> tuple[str, str]:
+    """Create a Foundry v2 Writer agent (no tools). Returns (name, version)."""
+    # TODO: call client.agents.create_version(...) with a PromptAgentDefinition.
+    raise NotImplementedError("Implement create_writer_agent for Lab 1")

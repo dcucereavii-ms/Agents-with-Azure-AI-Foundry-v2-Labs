@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """
-Lab 1 — Multi-Agent Research Pipeline
-Entry point: orchestrates the full research → write pipeline
+Lab 1 -- Multi-Agent Research Pipeline (Foundry v2 + Microsoft Agent Framework).
+Entry point: orchestrates Researcher -> Writer via MAF's SequentialBuilder.
 """
 
+import asyncio
 import os
 from dotenv import load_dotenv
 from rich.console import Console
@@ -13,7 +14,7 @@ load_dotenv()
 console = Console()
 
 
-def main():
+async def _async_main() -> None:
     topic = input("Enter a research topic: ").strip()
     if not topic:
         topic = "Latest advances in quantum computing 2024"
@@ -21,9 +22,13 @@ def main():
     console.print(Panel(f"[bold blue]Research Pipeline Starting[/bold blue]\nTopic: {topic}"))
 
     from agents.orchestrator import run_pipeline
-    result = run_pipeline(topic)
+    result = await run_pipeline(topic)
 
     console.print(Panel(result, title="[bold green]Final Report[/bold green]", expand=True))
+
+
+def main() -> None:
+    asyncio.run(_async_main())
 
 
 if __name__ == "__main__":
