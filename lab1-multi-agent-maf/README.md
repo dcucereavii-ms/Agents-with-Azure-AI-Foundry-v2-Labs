@@ -9,7 +9,7 @@
 
 ## 🎯 What You'll Build
 
-A **multi-agent research pipeline** that takes a user-supplied topic and automatically researches it on the web, then writes a polished report — all orchestrated by agents.
+A **multi-agent research pipeline** that takes a user-supplied topic, researches it using the model's training knowledge (with a Code Interpreter for any data-shaping work), and writes a polished report — all orchestrated by agents.
 
 ```
 User Query
@@ -23,7 +23,7 @@ User Query
              ▼                     ▼
    ┌──────────────────┐   ┌──────────────────┐
    │  ResearcherAgent │   │   WriterAgent    │
-   │  (Bing grounding)│   │  (pure LLM)      │
+   │  (Code Interp.)  │   │  (pure LLM)      │
    └────────┬─────────┘   └────────┬─────────┘
             │                      │
             │  research_results    │  final_report
@@ -35,8 +35,8 @@ User Query
 
 **Flow:**
 1. User enters a research topic
-2. Orchestrator creates a ResearcherAgent with Bing grounding
-3. ResearcherAgent searches the web and returns structured findings
+2. Orchestrator creates a ResearcherAgent (Code Interpreter for data work)
+3. ResearcherAgent returns structured findings from the model's training knowledge
 4. Orchestrator passes findings to the WriterAgent
 5. WriterAgent synthesizes a professional report
 6. Orchestrator returns the report and cleans up both agents
@@ -52,8 +52,9 @@ pip install -r requirements.txt
 
 Confirm your `.env` file has these values set (instructor provides at workshop start):
 - `AIPROJECT_ENDPOINT`
-- `BING_CONNECTION_NAME`
 - `MODEL_DEPLOYMENT` (defaults to `gpt-4o`)
+
+Auth is **Entra ID** (`DefaultAzureCredential` / `az login`) — no keys.
 
 ---
 
@@ -65,7 +66,7 @@ Open the `starter/` directory and review each file before writing any code:
 |---|---|
 | `main.py` | Entry point — already complete, no changes needed |
 | `agents/orchestrator.py` | Coordinates the two agents — **your main task** |
-| `agents/researcher.py` | Creates the Researcher agent with Bing — **you implement this** |
+| `agents/researcher.py` | Creates the Researcher agent with Code Interpreter — **you implement this** |
 | `agents/writer.py` | Creates the Writer agent — **you implement this** |
 | `utils/helpers.py` | Pre-built helpers (run_agent_turn, cleanup) — no changes needed |
 
@@ -82,13 +83,12 @@ Open `starter/agents/researcher.py`.
 
 Your task is to implement `create_researcher_agent()`. Follow the TODO comments:
 
-1. **Get the Bing connection** from the project using `client.connections.get()`
-2. **Create a `BingGroundingTool`** — pass the connection's `.id` field
-3. **Create a `ToolSet`** and call `.add(bing_tool)` on it
-4. **Call `client.agents.create_agent()`** with the model, name, instructions, and toolset
-5. **Return `agent.id`**
+1. **Create a `CodeInterpreterTool`** — lets the agent run Python for any data-shaping work
+2. **Build a `PromptAgentDefinition`** with the model, instructions, and `tools=[code_interpreter]`
+3. **Call `client.agents.create_version()`** with `agent_name="ResearcherAgent"` and the definition
+4. **Return `(agent.name, agent.version)`**
 
-> 💡 **Hint:** The connection name comes from `os.environ["BING_CONNECTION_NAME"]`. The agent ID is just a string like `"asst_abc123"`.
+> 💡 **Hint:** The model deployment comes from `os.environ.get("MODEL_DEPLOYMENT", "gpt-4o")`. You need both `name` and `version` to invoke the agent and clean it up later.
 
 **Check your understanding:** Why do we return only the agent ID and not the full agent object?
 
@@ -159,7 +159,7 @@ Watch the terminal output as the pipeline runs. You should see:
 ```
 
 Notice:
-- The researcher run takes longer (it's making Bing API calls)
+- The researcher run takes longer (it has Code Interpreter available)
 - The writer run is faster (pure LLM, no tool calls)
 - Cleanup happens in the `finally` block regardless of success/failure
 
@@ -196,8 +196,8 @@ Modify `main.py` to save the final report to a `.md` file named after the topic 
 |---|---|
 | **`AIProjectClient`** | The main SDK entry point — connects to your Azure AI Foundry project |
 | **`AgentThread`** | A single conversation context for one agent session |
-| **`ToolSet`** | Container for tools (BingGrounding, CodeInterpreter, Functions) |
-| **`BingGroundingTool`** | Gives the agent real-time web search via Bing |
+| **`PromptAgentDefinition`** | Foundry v2 agent definition: model, instructions, tools |
+| **`CodeInterpreterTool`** | Gives the agent a sandboxed Python runtime for data work |
 | **`create_and_process_run()`** | Starts a run and blocks until the agent finishes (handles tool calls internally) |
 | **`RunStatus.FAILED`** | Always check the run status before reading messages |
 | **`delete_agent()`** | Removes the agent from your project — always clean up! |

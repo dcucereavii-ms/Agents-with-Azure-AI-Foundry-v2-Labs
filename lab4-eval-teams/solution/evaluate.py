@@ -26,6 +26,7 @@ from azure.ai.projects import AIProjectClient
 from azure.ai.agents.models import RunStatus
 from azure.identity import DefaultAzureCredential
 from azure.ai.evaluation import (
+    AzureOpenAIModelConfiguration,
     GroundednessEvaluator,
     CoherenceEvaluator,
     RelevanceEvaluator,
@@ -57,7 +58,7 @@ class CitationPresentEvaluator:
     1.0 otherwise. Cheap, fast, no LLM call — gives the gate baseline signal
     when judge LLMs are flaky."""
 
-    CONCEPT_RE = re.compile(r"\b([A-Z][a-zA-Z]+(?:Tool|Client|Evaluator|Agent|Instrumentor))\b|MCP|Foundry|Bing")
+    CONCEPT_RE = re.compile(r"\b([A-Z][a-zA-Z]+(?:Tool|Client|Evaluator|Agent|Instrumentor))\b|MCP|Foundry")
 
     def __call__(self, *, response: str, context: str = "", **kwargs):
         ctx_terms = set(self.CONCEPT_RE.findall(context or ""))
@@ -96,12 +97,14 @@ def make_agent_target(client: AIProjectClient, agent_id: str):
 # Eval runner
 # ─────────────────────────────────────────────────────────────────────────────
 def run_evaluation(client: AIProjectClient, agent_id: str, output_path: str) -> dict:
-    model_config = {
-        "azure_endpoint":   os.environ["AZURE_OPENAI_ENDPOINT"],
-        "api_key":          os.environ["AZURE_OPENAI_KEY"],
-        "azure_deployment": os.environ.get("MODEL_DEPLOYMENT", "gpt-4o"),
-        "api_version":      "2024-08-01-preview",
-    }
+    # Judge LLM is reached via Microsoft Entra ID (AAD) -- no keys required.
+    # The evaluators will use DefaultAzureCredential (same as `az login`) when
+    # api_key is omitted from the model_config.
+    model_config = AzureOpenAIModelConfiguration(
+        azure_endpoint=os.environ["AZURE_OPENAI_ENDPOINT"],
+        azure_deployment=os.environ.get("MODEL_DEPLOYMENT", "gpt-4o"),
+        api_version="2024-08-01-preview",
+    )
 
     evaluators = {
         "groundedness":     GroundednessEvaluator(model_config=model_config),

@@ -294,7 +294,7 @@ A successful pre-workshop run looks like:
 ✅ pip 24.x — OK
 ✅ Virtualenv active — OK
 ✅ azure-ai-projects (AIProjectClient) — Lab 1, 2, 3, 4
-  ✅ azure-ai-agents.models (BingGroundingTool) — Lab 1
+  ✅ azure-ai-projects.models (CodeInterpreterTool) — Lab 1, 3
   ✅ azure-ai-agents.models (CodeInterpreterTool) — Lab 1
   ✅ azure-ai-agents.models (McpTool) — Lab 2
   ✅ azure-ai-agents.telemetry (AIAgentsInstrumentor) — Lab 3
@@ -368,9 +368,9 @@ That's it. No installs. No "wait, my pip is stuck." Straight to the lab.
 ### Lab 1 — Your First Multi-Agent System on Azure AI Agent Service
 **⏱ 35 minutes**
 
-Build a multi-agent research pipeline using the Azure AI Foundry v2 agents SDK. You'll create a `ResearcherAgent` (with Bing grounding for web search), a `WriterAgent` (for synthesizing reports), and an `Orchestrator` that coordinates them end-to-end.
+Build a multi-agent research pipeline using the Azure AI Foundry v2 agents SDK. You'll create a `ResearcherAgent` (with a Code Interpreter for data work), a `WriterAgent` (for synthesizing reports), and an `Orchestrator` that coordinates them end-to-end.
 
-**You'll learn:** Agent creation, BingGroundingTool, ToolSet, AgentThread lifecycle, agent-to-agent orchestration patterns.
+**You'll learn:** Agent creation, CodeInterpreterTool, PromptAgentDefinition, agent-to-agent orchestration patterns.
 
 > The directory name `lab1-multi-agent-maf` is retained for backward-compat with earlier workshop links. The lab uses the Foundry Agent Service SDK directly — no separate MAF runtime is required.
 

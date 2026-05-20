@@ -22,8 +22,8 @@ and promote the passing version.
 
 - Azure AI Foundry project (same one used in Labs 1–3).
 - A model deployment (e.g. `gpt-4o`) reachable via the project.
-- An Azure OpenAI endpoint + key for the **judge** model
-  (`AZURE_OPENAI_ENDPOINT`, `AZURE_OPENAI_KEY` in `.env`).
+- An Azure OpenAI endpoint for the **judge** model (`AZURE_OPENAI_ENDPOINT` in
+  `.env`). Auth is Entra ID via `DefaultAzureCredential` -- no key required.
 - `pip install -r requirements.txt` from the lab folder.
 
 ## File map
@@ -133,8 +133,7 @@ detail panel and the agent responds with grounded, cited answers.
 - **Gate prints `MISSING` for every metric** — your SDK version is emitting
   prefixed keys (`groundedness.groundedness`). Implement the tolerant lookup
   shown in TODO 5.
-- **Run never completes** — check that the agent's tool config is valid; a
-  malformed BingGrounding connection will hang the run.
+- **Run never completes** — check that the agent's tool config is valid.
 - **Agents accumulate in the project** — `evaluate.py` deletes the agents it
   created in a `finally` block; if you Ctrl-C during a run, run
   `client.agents.list_agents()` and clean up manually.
