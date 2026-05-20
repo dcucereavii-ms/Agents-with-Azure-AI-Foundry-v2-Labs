@@ -9,6 +9,13 @@ server natively via MCPTool, and is invoked through MAF's FoundryAgent.
 import asyncio
 import os
 import sys
+import warnings
+
+# MAF 1.5 surfaces ExperimentalWarning for MemoryStore / SkillResource the
+# first time agent_framework is imported. They're informational and noisy
+# in a workshop console; silence them up front.
+warnings.filterwarnings("ignore", message=r".*is experimental.*")
+
 from dotenv import load_dotenv
 from azure.ai.projects import AIProjectClient
 from azure.ai.projects.models import PromptAgentDefinition, MCPTool
