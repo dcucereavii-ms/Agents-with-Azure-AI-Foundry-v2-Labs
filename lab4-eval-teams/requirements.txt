@@ -1,3 +1,4 @@
 # Lab 4 — Eval gate + promotion
 -r ../shared/requirements.txt
-azure-ai-evaluation==1.0.0b6
+# 1.0.0b6 was yanked from PyPI; use the stable line (1.0.0+).
+azure-ai-evaluation>=1.0.0,<2.0

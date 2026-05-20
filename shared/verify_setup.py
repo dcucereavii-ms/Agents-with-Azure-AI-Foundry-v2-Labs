@@ -7,7 +7,7 @@ Run this from the repo root *after* installing each lab's requirements:
     python shared/verify_setup.py
 
 Checks:
-  - Python 3.11+
+  - Python 3.10+
   - All SDK classes used by Labs 1-4 are importable (catches version drift)
   - .env file exists
   - AIPROJECT_ENDPOINT looks plausible (warning only)
@@ -23,23 +23,28 @@ from pathlib import Path
 # (module_path, class_or_attr_name, used_by_lab) — class-level imports catch
 # breakage that simple `import` checks miss.
 SDK_IMPORTS = [
-    # core (every lab)
+    # core (every lab) -- Foundry v2 SDK
     ("azure.ai.projects",                 "AIProjectClient",           "all"),
+    ("azure.ai.projects.models",          "PromptAgentDefinition",     "all"),
     ("azure.identity",                    "DefaultAzureCredential",    "all"),
     ("dotenv",                            "load_dotenv",               "all"),
     ("rich.console",                      "Console",                   "all"),
-    # Lab 1 — agent model classes live in azure-ai-agents as of b11
-    ("azure.ai.agents.models",            "BingGroundingTool",         "1"),
-    ("azure.ai.agents.models",            "ToolSet",                   "1"),
-    # Lab 2
-    ("mcp",                               "ClientSession",             "2"),
-    ("mcp",                               "StdioServerParameters",     "2"),
-    ("azure.ai.agents.models",            "McpTool",                   "2"),
-    # Lab 3
+    # Microsoft Agent Framework (labs 1-3 orchestration layer)
+    ("agent_framework",                   "Message",                   "1,2,3"),
+    ("agent_framework.foundry",           "FoundryAgent",              "1,2,3"),
+    ("agent_framework.orchestrations",    "SequentialBuilder",         "1"),
+    # Lab 1
+    ("azure.ai.projects.models",          "CodeInterpreterTool",       "1,3"),
+    # Lab 2 -- MCPTool is provided by azure-ai-projects (Foundry v2)
+    ("azure.ai.projects.models",          "MCPTool",                   "2"),
+    # mcp client SDK is used by the local mcp_server.py demo
+    ("mcp",                               "types",                     "2"),
+    ("mcp.server",                        "Server",                    "2"),
+    # Lab 3 -- tracing
     ("azure.monitor.opentelemetry",       "configure_azure_monitor",   "3"),
-    ("azure.ai.agents.telemetry",         "AIAgentsInstrumentor",      "3"),
-    ("azure.ai.agents.models",            "CodeInterpreterTool",       "3,4"),
-    # Lab 4
+    ("opentelemetry",                     "trace",                     "3"),
+    # Lab 4 -- still uses classic azure-ai-agents for run polling + evaluators
+    ("azure.ai.agents.models",            "RunStatus",                 "4"),
     ("azure.ai.evaluation",               "GroundednessEvaluator",     "4"),
     ("azure.ai.evaluation",               "CoherenceEvaluator",        "4"),
     ("azure.ai.evaluation",               "RelevanceEvaluator",        "4"),
@@ -60,13 +65,13 @@ def main():
     print(f"\n{BOLD}=== Workshop Environment Verification ==={RESET}\n")
     results = []
 
-    # Python version
+    # Python version (MAF requires 3.10+)
     major, minor = sys.version_info.major, sys.version_info.minor
-    ver_ok = (major == 3 and minor >= 11)
+    ver_ok = (major == 3 and minor >= 10)
     results.append(check(
         f"Python {major}.{minor}.{sys.version_info.micro}",
         ver_ok,
-        detail="(need 3.11+)" if not ver_ok else "",
+        detail="(need 3.10+)" if not ver_ok else "",
     ))
 
     # SDK class-level imports
