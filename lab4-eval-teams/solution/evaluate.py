@@ -138,14 +138,33 @@ def run_evaluation(
         "citation_present": CitationPresentEvaluator(),
     }
 
-    return evaluate(
+    # Unique, human-readable name so the run is easy to spot in the portal.
+    from datetime import datetime
+    eval_name = f"lab4-{agent_name}-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+    console.print(f"[dim]Submitting evaluation:[/dim] [cyan]{eval_name}[/cyan]")
+
+    results = evaluate(
         data=str(DATASET_PATH),
         target=make_agent_target(endpoint, agent_name, agent_version),
         evaluators=evaluators,
         output_path=output_path,
+        evaluation_name=eval_name,
         # Upload the run to Foundry portal -> Evaluations.
         azure_ai_project=endpoint,
     )
+
+    # Surface the upload URL if the SDK returned one (it does when [remote]
+    # extras are installed and the upload actually succeeds).
+    studio_url = results.get("studio_url") or results.get("_studio_url")
+    if studio_url:
+        console.print(f"[green]Foundry eval URL:[/green] [link={studio_url}]{studio_url}[/link]")
+    else:
+        console.print(
+            "[yellow]No Foundry upload URL returned. "
+            "Ensure azure-ai-evaluation[remote] is installed and that you have "
+            "'Cognitive Services User' + 'Storage Blob Data Contributor' on the project.[/yellow]"
+        )
+    return results
 
 
 # ─────────────────────────────────────────────────────────────────────────────
