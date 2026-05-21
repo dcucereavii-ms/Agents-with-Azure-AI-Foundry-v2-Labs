@@ -93,6 +93,13 @@ Python 3.11 or 3.12 is required. Python 3.10 and below **will not work** with so
 
 - **Download:** https://www.python.org/downloads/
 - During Windows installation, check **"Add Python to PATH"**
+- **Windows alternative (PowerShell, recommended):**
+  ```powershell
+  winget install --id Python.Python.3.12 -e --source winget
+  ```
+  Close and reopen your terminal after install so `PATH` refreshes.
+  > If `python` opens the Microsoft Store instead of running, disable the Store aliases:
+  > **Settings → Apps → Advanced app settings → App execution aliases** → turn OFF `python.exe` and `python3.exe`.
 
 **Verify:**
 ```bash
