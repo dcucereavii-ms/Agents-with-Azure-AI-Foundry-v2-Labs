@@ -8,21 +8,20 @@
 
 | Time | Session | Format |
 |---|---|---|
-| 9:00 – 9:20 AM | **Module 1** — The Agent Production Gap: Where Most Devs Get Stuck | Presentation |
-| 9:20 – 9:35 AM | **Module 2** — The Model Catalog: Right Model, Right Task, Right Cost | Presentation + Live Demo |
-| 9:35 – 10:05 AM | **Module 3** — Microsoft Agent Framework: Build Agents the Right Way | Presentation + Code Walkthrough |
-| 10:05 – 10:40 AM | **Module 4** — Agent Service: The Managed Runtime for Your Agents | Presentation + Live Demo |
-| 10:40 – 11:10 AM | **Module 5** — MCP + A2A: The Open Standards That Change Everything | Presentation + Live Demo |
-| 11:10 – 11:35 AM | **Module 6** — Ship It: Evals, Promotion, Production | Presentation + Demo |
-| 11:35 AM – 12:30 PM | *Lunch Break* | — |
-| 12:30 – 1:05 PM | **Lab 1** — Your First Multi-Agent System (Agent-to-Agent orchestration) | Hands-On Lab |
-| 1:05 – 1:45 PM | **Lab 2** — MCP Power Hour: Connect Anything in Minutes | Hands-On Lab |
-| 1:45 – 2:20 PM | **Lab 3** — Deploy & Observe: Foundry Agent Service + Tracing | Hands-On Lab |
-| 2:20 – 2:55 PM | **Lab 4** — Ship It: Eval Gate + Iterate to Production | Hands-On Lab |
-| 2:55 – 3:05 PM | **Wrap-Up** — Live Agents in the Room | Discussion & Demo |
+| 9:00 – 9:15 AM | **Module 1** — The Agent Production Gap: Where Most Devs Get Stuck | Presentation |
+| 9:15 – 9:25 AM | **Module 2** — The Model Catalog: Right Model, Right Task, Right Cost | Presentation + Live Demo |
+| 9:25 – 9:40 AM | **Module 3** — Microsoft Agent Framework: Build Agents the Right Way | Presentation + Code Walkthrough |
+| 9:40 – 9:55 AM | **Module 4** — Agent Service: The Managed Runtime for Your Agents | Presentation + Live Demo |
+| 9:55 – 10:10 AM | **Module 5** — MCP + A2A: The Open Standards That Change Everything | Presentation + Live Demo |
+| 10:10 – 10:25 AM | **Module 6** — Ship It: Evals, Promotion, Production | Presentation + Demo |
+| 10:25 – 10:40 AM | *Break* | — |
+| 10:40 – 11:00 AM | **Lab 1** — Your First Multi-Agent System (Agent-to-Agent orchestration) | Hands-On Lab |
+| 11:00 – 11:20 AM | **Lab 2** — MCP Power Hour: Connect Anything in Minutes | Hands-On Lab |
+| 11:20 – 11:40 AM | **Lab 3** — Deploy & Observe: Foundry Agent Service + Tracing | Hands-On Lab |
+| 11:40 – 11:55 AM | **Lab 4** — Ship It: Eval Gate + Iterate to Production | Hands-On Lab |
+| 11:55 AM – 12:00 PM | **Wrap-Up** — Live Agents in the Room | Discussion & Demo |
 
-> **Morning** = presentations + demos. **Afternoon** = 4 hands-on labs back-to-back.
-> Pre-workshop setup (below) is required so the afternoon starts at minute one.
+> **Compressed format** — modules + demos before the break, 4 hands-on labs after. Pre-workshop setup (below) is required so labs start at minute one.
 >
 > **Lab ↔ Module map:**
 > - Lab 1 is the practical companion to Module 3 (MAF) and Module 5 (A2A — the orchestrator → researcher → writer pattern *is* agent-to-agent).
