@@ -67,6 +67,10 @@ You **must** have the **Microsoft Authenticator** app installed and configured o
 - After receiving the email, use Authenticator to complete the MFA sign-in and **confirm it works**
 - If you cannot log in, contact the workshop team **before** arriving — we cannot pause labs for account issues
 
+> **Sandbox user ID format:**
+> `cibcuser<NN>@mariuszkolodziejoutlook.onmicrosoft.com`
+> where `<NN>` is your assigned two-digit user number from **02 to 60** (e.g. `cibcuser07@mariuszkolodziejoutlook.onmicrosoft.com`).
+
 ---
 
 ## 💻 Hardware Requirements
